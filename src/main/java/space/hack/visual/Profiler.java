@@ -9,95 +9,87 @@ package space.hack.visual;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Quaternion;
-import net.minecraft.client.gui.Font;
+import com.mojang.math.Axis;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 import space.hack.Hack;
 import space.hack.HackCategory;
 import space.utils.RenderUtils;
 import space.utils.Utils;
+import space.utils.ValidUtils;
 import space.utils.Wrapper;
 import space.value.IntValue;
 import space.value.Mode;
 import space.value.ModeValue;
-import space.value.NumberValue;
 
 import java.awt.*;
 
 public class Profiler extends Hack {
 
-    public final ModeValue mode;
-    public final NumberValue scaleText;
-    public final NumberValue scaleBox;
-    public final IntValue heightBox;
+    private final ModeValue mode;
+    private final IntValue range;
 
     public Profiler() {
         super("Profiler", HackCategory.Visual);
-        this.mode = new ModeValue("Mode", new Mode("Simple", true), new Mode("Flipped"));
-        this.scaleText = new NumberValue("Scale-Text", 0.20, 0.0, 0.3);
-        this.scaleBox = new NumberValue("Scale-Box", 0.27, 0.0, 0.3);
-        this.heightBox = new IntValue("Height-Box", 40, 0, 50);
-        this.addValue(this.mode, this.scaleText, this.scaleBox, this.heightBox);
+        this.mode = new ModeValue("Mode", new Mode("Simple", true));
+        this.range = new IntValue("Range", 30, 10, 100);
+        this.addValue(this.mode, this.range);
     }
 
     @Override
-    public void onRender(final PoseStack poseStack) {
+    public void onRender(final GuiGraphics graphics) {
+        PoseStack poseStack = graphics.pose();
         for (final Object object : Utils.getEntityList()) {
             if (object instanceof LivingEntity entity) {
-                Vec3 Pos = Utils.getDoubles(entity);
-                Double scale = this.scaleText.getValue();
-                if (scale > 0){
-                    drawEntityText(poseStack, entity, Pos, scale.floatValue() / 10F, Utils.rainbow(10, 2));
-                }
-                scale = this.scaleBox.getValue();
-                if (scale > 0 && !entity.isDeadOrDying()){
-                    renderEntityBoundingBox(poseStack, entity, Pos, scale.floatValue() / 10F, Utils.rainbow(9, 0));
+                if (ValidUtils.getDistanceToEntityBox(entity) <= this.range.getValue() && !ValidUtils.isValidEntity(entity)) {
+                    Vec3 pos = Utils.getDoubles(entity);
+                    drawEntityText(graphics, poseStack, entity, pos, Utils.rainbow(10, 4));
+                    if (!entity.isDeadOrDying()) {
+                        renderEntityBoundingBox(poseStack, entity, pos, Utils.rainbow(9, 5));
+                    }
                 }
             }
         }
     }
 
-    private void drawEntityText(final PoseStack poseStack, final LivingEntity entity, final Vec3 Pos, final float scale, final Color color) {
+    private void drawEntityText(GuiGraphics graphics, PoseStack poseStack, final LivingEntity entity, final Vec3 pos, final Color color) {
         String health = Utils.health(entity.getHealth());
-        String maxhealth = Utils.health(entity.getMaxHealth());
+        String maxHealth = Utils.health(entity.getMaxHealth());
 
         String text = entity.getName().getString() +
                 ": " + Utils.getDistance(entity) +
-                " Health: " + health + "/" + maxhealth;
+                " Health: " + health + "/" + maxHealth;
 
         poseStack.pushPose();
-        Font fontRenderer = Wrapper.font();
 
-        poseStack.translate(Pos.x, Pos.y + entity.getBbHeight() + 0.5, Pos.z);
-        poseStack.mulPose(new Quaternion(0.0F, -Wrapper.getRenderManager().camera.getYRot() + 180, 0.0F, true));
-        poseStack.scale(scale, -scale, scale);
+        poseStack.translate(pos.x, pos.y + entity.getBbHeight() + 0.5, pos.z);
+        poseStack.mulPose(Axis.YP.rotationDegrees(-Wrapper.getRenderManager().camera.getYRot() + 180));
+        poseStack.scale(0.02f, -0.02f, 0.02f);
 
-        fontRenderer.drawShadow(poseStack, text, -60, -3, color.getRGB());
+        Wrapper.drawString(graphics, text, -60, -3, color.getRGB());
 
         poseStack.popPose();
     }
 
-    public void renderEntityBoundingBox(final PoseStack poseStack, final LivingEntity entity, final Vec3 Pos, final float scale, final Color color) {
-
+    private void renderEntityBoundingBox(final PoseStack poseStack, final LivingEntity entity, final Vec3 pos, final Color color) {
         RenderSystem.disableDepthTest();
         poseStack.pushPose();
-        poseStack.translate(Pos.x, Pos.y, Pos.z);
-        poseStack.mulPose(new Quaternion(0.0F, -Wrapper.getRenderManager().camera.getYRot(), 0.0F, true));
-        poseStack.scale(scale, scale, scale);
+        poseStack.translate(pos.x, pos.y, pos.z);
+        poseStack.mulPose(Axis.YP.rotationDegrees(-Wrapper.getRenderManager().camera.getYRot()));
+        poseStack.scale(0.027f, 0.027f, 0.027f);
 
         double health = entity.getHealth();
-        double maxhealth = entity.getMaxHealth();
+        double maxHealth = entity.getMaxHealth();
 
-        int height = this.heightBox.getValue() + 30;
-        int newValue = calculateHealthBarValue(health, maxhealth, height);
+        int height = 70;
+        int newValue = calculateHealthBarValue(health, maxHealth, height);
 
         RenderUtils.drawRect(poseStack, 17, -1, 23, height + 1, Color.BLACK.getRGB());
         RenderUtils.drawRect(poseStack, 18, 0, 22, newValue, color.getRGB());
 
         RenderSystem.enableDepthTest();
         poseStack.popPose();
-
     }
 
     private int calculateHealthBarValue(final double health, final double maxHealth, final int height) {
@@ -105,5 +97,4 @@ public class Profiler extends Hack {
                 ? (health / maxHealth) * height
                 : (1.0 - (health / maxHealth)) * height);
     }
-
 }

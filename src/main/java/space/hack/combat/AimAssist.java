@@ -9,8 +9,10 @@ package space.hack.combat;
 
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.EntityHitResult;
+import space.Core;
 import space.hack.Hack;
 import space.hack.HackCategory;
+import space.manager.HackManager;
 import space.utils.Utils;
 import space.utils.ValidUtils;
 import space.utils.Wrapper;
@@ -18,14 +20,16 @@ import space.value.*;
 
 public class AimAssist extends Hack {
 
-    public final ModeValue priority;
-    public final IntValue hurtTime;
-    public final IntValue fOV;
-    public final NumberValue range;
-    public final ModeValue mode;
-    public final BooleanValue mouseClick;
-    public final BooleanValue sprint;
-    public final IntValue rotationSpeed;
+    private final ModeValue priority;
+    private final IntValue hurtTime;
+    private final IntValue fOV;
+    private final NumberValue range;
+    private final ModeValue mode;
+    private final BooleanValue mouseClick;
+    private final BooleanValue sprintMode;
+    private final IntValue rotationSpeed;
+    private final BooleanValue rotationMode;
+    private final IntValue deltaYMode;
 
     public AimAssist() {
         super("AimAssist", HackCategory.Combat);
@@ -33,45 +37,49 @@ public class AimAssist extends Hack {
         this.priority = ValidUtils.isPriority("Priority");
         this.hurtTime = new IntValue("HurtTime", 10, 0, 10);
         this.range = new NumberValue("Range", 3.8, 1.0, 6.0);
-        this.sprint = new BooleanValue("Sprint", true);
+        this.deltaYMode = new IntValue("DeltaYMode", 0, 0, 2);
+        this.sprintMode = new BooleanValue("Sprint", true);
         this.mouseClick = new BooleanValue("MouseClick", false);
+        this.rotationMode = new BooleanValue("RotationMode", false);
         this.fOV = new IntValue("FOV", 120, 1, 360);
-        this.rotationSpeed = new IntValue("RotationSpeed", 10, 1, 11);
-        this.addValue(this.mode, this.hurtTime, this.range, this.priority, this.sprint, this.mouseClick, this.fOV, this.rotationSpeed);
+        this.rotationSpeed = new IntValue("RotationSpeed", 10, 1, 10);
+        this.addValue(this.mode, this.hurtTime, this.range, this.priority, this.sprintMode, this.mouseClick, this.rotationMode, this.fOV, this.rotationSpeed);
+        if (Core.mode) {
+            this.addValue(this.deltaYMode);
+        }
     }
 
     @Override
     public void onAllTick() {
-        if (this.mouseClick.getValue() && !(Wrapper.mc().options.keyAttack.isDown() || Wrapper.mc().options.keyUse.isDown())) {
-            this.Sprint = true;
-            this.AimAssist = true;
+        boolean mouse = this.mouseClick.getValue() && !(Wrapper.mc().options.keyAttack.isDown() || Wrapper.mc().options.keyUse.isDown());
+        if (HackManager.noAimAssist() || (this.rotationMode.getValue() && mouse) || mouse) {
             return;
         }
+        this.onTick();
+    }
 
+    public void onTick() {
         LivingEntity target = null;
         if (Wrapper.mc().hitResult instanceof EntityHitResult hitResult) {
             if (hitResult.getEntity() instanceof LivingEntity livingEntity) {
-                if(ValidUtils.check(livingEntity, this.fOV.getValue(), this.range.getValue(), this.hurtTime.getValue()) == 0){
+                if (ValidUtils.check(livingEntity, this.fOV.getValue(), this.range.getValue(), this.hurtTime.getValue()) == 0) {
                     target = livingEntity;
                 }
             }
         }
 
         if (target == null) {
-            this.Sprint = true;
-            this.AimAssist = true;
+            this.sprint = true;
             target = ValidUtils.SimpleUpdate(this.fOV.getValue(), this.range.getValue(), this.priority.getMode(), this.hurtTime.getValue());
             if (target != null) {
-                Utils.upRotations(target, this.rotationSpeed.getValue());
+                Utils.upRotations(target, this.rotationSpeed.getValue(), this.deltaYMode.getValue());
             }
-        }else if (this.mode.equals("Simple")) {
-            Utils.upRotations(target, this.rotationSpeed.getValue());
+        } else if (this.mode.equals("Simple")) {
+            Utils.upRotations(target, this.rotationSpeed.getValue(), this.deltaYMode.getValue());
         }
 
-        this.AimAssist = false;
-        if(!this.sprint.getValue()) {
-            this.Sprint = false;
+        if (!this.sprintMode.getValue()) {
+            this.sprint = false;
         }
-
     }
 }

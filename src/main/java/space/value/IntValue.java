@@ -7,11 +7,10 @@
  */
 package space.value;
 
-public class IntValue extends Value<Integer>
-{
+public class IntValue extends Value<Integer> {
+    public final Integer Default;
     protected final Integer min;
     protected final Integer max;
-    public final Integer Default;
 
     public IntValue(final String name, final int defaultValue, final int min, final int max) {
         super(name, defaultValue);
@@ -24,11 +23,13 @@ public class IntValue extends Value<Integer>
         return super.getValue();
     }
 
-    public void setValue(final double value) {
+    public void setValue(final int value) {
         if (value > this.max) {
             this.value = this.max;
-        }else if (value < this.min) {
+        } else if (value < this.min) {
             this.value = this.min;
+        } else {
+            this.value = value;
         }
     }
 

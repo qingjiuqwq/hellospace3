@@ -12,23 +12,13 @@ import space.hack.HackCategory;
 import space.value.NumberValue;
 
 public class TestAdmin1 extends Hack {
-    public final NumberValue num1X;
-    public final NumberValue num2X;
-    public final NumberValue num3X;
-    public final NumberValue num4X;
-    public final NumberValue num5X;
-    public final NumberValue num6X;
     public static int num1 = 0, num2 = 0, num3 = 0, num4 = 0, num5 = 0, num6 = 0;
-
-    @Override
-    public void onAllTick() {
-        num1 = num1X.getValue().intValue();
-        num2 = num2X.getValue().intValue();
-        num3 = num3X.getValue().intValue();
-        num4 = num4X.getValue().intValue();
-        num5 = num5X.getValue().intValue();
-        num6 = num6X.getValue().intValue();
-    }
+    private final NumberValue num1X;
+    private final NumberValue num2X;
+    private final NumberValue num3X;
+    private final NumberValue num4X;
+    private final NumberValue num5X;
+    private final NumberValue num6X;
 
     public TestAdmin1() {
         super("TestAdmin1", HackCategory.Visual);
@@ -40,5 +30,15 @@ public class TestAdmin1 extends Hack {
         this.num6X = new NumberValue("num6", 0.0, 0.0, 300.0);
         this.addValue(this.num1X, this.num2X, this.num3X, this.num4X, this.num5X, this.num6X);
     }
-     
+
+    @Override
+    public void onAllTick() {
+        num1 = num1X.getValue().intValue();
+        num2 = num2X.getValue().intValue();
+        num3 = num3X.getValue().intValue();
+        num4 = num4X.getValue().intValue();
+        num5 = num5X.getValue().intValue();
+        num6 = num6X.getValue().intValue();
+    }
+
 }

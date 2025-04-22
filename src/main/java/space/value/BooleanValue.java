@@ -7,9 +7,9 @@
  */
 package space.value;
 
-public class BooleanValue extends Value<Boolean>
-{
+public class BooleanValue extends Value<Boolean> {
     public final Boolean Default;
+    private String info;
 
     public BooleanValue(final String name, final Boolean defaultValue) {
         super(name, defaultValue);
@@ -19,4 +19,13 @@ public class BooleanValue extends Value<Boolean>
     public Boolean getDefault() {
         return Default;
     }
+
+    public String getInfo() {
+        return info;
+    }
+
+    public void setInfo(String info) {
+        this.info = info;
+    }
+
 }

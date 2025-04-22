@@ -7,10 +7,19 @@
  */
 package space.value;
 
-public class Mode
-{
+public class Mode {
     private final String name;
     private boolean toggled;
+
+    public Mode(final String name, final boolean toggled) {
+        this.name = name;
+        this.toggled = toggled;
+    }
+
+    public Mode(final String name) {
+        this.name = name;
+        this.toggled = false;
+    }
 
     public String getName() {
         return this.name;
@@ -22,15 +31,5 @@ public class Mode
 
     public void setToggled(final boolean toggled) {
         this.toggled = toggled;
-    }
-
-    public Mode(final String name, final boolean toggled) {
-        this.name = name;
-        this.toggled = toggled;
-    }
-
-    public Mode(final String name) {
-        this.name = name;
-        this.toggled = false;
     }
 }

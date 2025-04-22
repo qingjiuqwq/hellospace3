@@ -19,8 +19,7 @@ import space.manager.HackManager;
 import space.value.Mode;
 import space.value.ModeValue;
 
-public class ValidUtils
-{
+public class ValidUtils {
 
     public static LivingEntity SimpleUpdate(final int Fov, final double Range, final String Priority, final int hurtTime) {
         double TargetRange = -1;
@@ -30,13 +29,13 @@ public class ValidUtils
                 int check = check(target, Fov, Range, hurtTime);
                 if (check == 0) {
                     double Distance = Priority.equals("Range") ? getDistanceToEntityBox(target) : target.getHealth();
-                    if (TargetRange == -1 || Distance < TargetRange){
+                    if (TargetRange == -1 || Distance < TargetRange) {
                         LTarget = target;
                         TargetRange = Distance;
                     }
-                }else {
-                    //System.out.print("[" + check + "]");
-                }
+                }// else {
+                // System.out.print("[" + check + "]");
+                // }
             }
         }
         return LTarget;
@@ -46,29 +45,29 @@ public class ValidUtils
         return new ModeValue(name, new Mode("Range", true), new Mode("Health"));
     }
 
-    public static int check (final LivingEntity target, final int Fov, final double Range, final int hurtTim){
-        if (!Wrapper.player().hasLineOfSight(target)){
+    public static int check(final LivingEntity target, final int Fov, final double Range, final int hurtTim) {
+        if (!Wrapper.player().hasLineOfSight(target)) {
             return 1;
-        }else if(target instanceof ArmorStand || target.isSpectator()){
+        } else if (target instanceof ArmorStand || target.isSpectator()) {
             return 2;
-        }else if(!isValidEntity(target)) {
+        } else if (!isValidEntity(target)) {
             return 3;
-        }else if(!isInAttackRange(target, Range)){
+        } else if (!isInAttackRange(target, Range)) {
             return 4;
-        }else if(Fov != 360 && !ValidUtils.isInAttackFOV(target,  Fov / 2)){
+        } else if (Fov != 360 && !ValidUtils.isInAttackFOV(target, Fov / 2)) {
             return 5;
-        }else if(target.getY() - Wrapper.player().getY() > 2){
+        } else if (target.getY() - Wrapper.player().getY() > 2) {
             return 6;
-        }else if(!target.isAlive() || target.deathTime > 0){
+        } else if (!target.isAlive() || target.deathTime > 0) {
             return 7;
-        }else if (hurtTim != -1 && target.hurtTime > hurtTim){
+        } else if (hurtTim != -1 && target.hurtTime > hurtTim) {
             return 8;
         }
 
-        if (target instanceof Player player){
-            if(ValidUtils.isBot(player)){
+        if (target instanceof Player player) {
+            if (ValidUtils.isBot(player)) {
                 return 9;
-            }else if(!ValidUtils.isTeam(player)){
+            } else if (!ValidUtils.isTeam(player)) {
                 return 10;
             }
         }
@@ -81,10 +80,10 @@ public class ValidUtils
         if (hack != null && hack.isToggled()) {
             String Mode = hack.isToggledMode("Mode");
             if (Mode.equals("Base")) {
-                if (player.getTeam() != null && Wrapper.player().getTeam() != null && player.getTeam() == Wrapper.player().getTeam()){
+                if (player.getTeam() != null && Wrapper.player().getTeam() != null && player.getTeam() == Wrapper.player().getTeam()) {
                     return true;
                 }
-            }else return Utils.checkEnemyColor(player);
+            } else return Utils.checkEnemyColor(player);
         }
         return true;
     }
@@ -92,7 +91,7 @@ public class ValidUtils
     public static boolean isBot(final Player entity) {
         final Hack hack = HackManager.getHackE("AntiBot");
         if (hack != null && hack.isToggled()) {
-            return AntiBot.isBot(entity,hack);
+            return AntiBot.isBot(entity, hack);
         }
         return false;
     }
@@ -124,11 +123,11 @@ public class ValidUtils
         if (hack == null) {
             return false;
         }
-        if (target instanceof Player){
-            if (hack.isBooleanValue("Players")){
+        if (target instanceof Player) {
+            if (hack.isBooleanValue("Players")) {
                 return isValidEntity(target, hack);
             }
-        }else if (hack.isBooleanValue("Mobs")){
+        } else if (hack.isBooleanValue("Mobs")) {
             return isValidEntity(target, hack);
         }
 
@@ -138,7 +137,7 @@ public class ValidUtils
     public static boolean isValidEntity(final LivingEntity target, final Hack hack) {
         if (target.isInvisible()) {
             return hack.isBooleanValue("Invisible");
-        }else if (target.isSleeping()){
+        } else if (target.isSleeping()) {
             return hack.isBooleanValue("Sleeping");
         }
         return true;

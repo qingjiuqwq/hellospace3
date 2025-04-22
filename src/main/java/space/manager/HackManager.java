@@ -8,20 +8,24 @@
 package space.manager;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
-import net.minecraftforge.client.event.EntityViewRenderEvent;
 import net.minecraftforge.client.event.InputEvent;
+import net.minecraftforge.client.event.ViewportEvent;
 import space.Core;
 import space.hack.Hack;
 import space.hack.another.*;
-import space.hack.combat.*;
+import space.hack.combat.AimAssist;
+import space.hack.combat.AutoClicker;
+import space.hack.combat.Criticals;
+import space.hack.combat.KillAura;
 import space.hack.hud.Hud;
 import space.hack.hud.element.EnemyInfo;
 import space.hack.hud.element.HArrayList;
-import space.hack.player.AutoTool;
-import space.hack.player.Eagle;
-import space.hack.player.Scaffold;
+import space.hack.hud.element.MusicLyrics;
+import space.hack.player.*;
 import space.hack.visual.*;
 import space.utils.Connection;
 import space.utils.TimerUtils;
@@ -37,57 +41,21 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class HackManager {
-    public final static ArrayList<Hack> hacks = new ArrayList<>();
-    public final static ArrayList<Hud> hud = new ArrayList<>();
+
+    private final static ArrayList<Hack> hacks = new ArrayList<>();
+    private final static ArrayList<Hud> hud = new ArrayList<>();
+    private static final TimerUtils timer = new TimerUtils();
     public static ArrayList<SeverMode> severMode = new ArrayList<>();
-    public static boolean initialized = false;
-    public static final TimerUtils timer = new TimerUtils();
+    private static boolean initialized = false;
+    private static ClientLevel warn = null;
 
     public HackManager() {
         this.addHacks();
     }
 
-    public void addHacks() {
-        //Another
-        addHack(new AntiBot());
-        addHack(new Sprint());
-        addHack(new Flight());
-        addHack(new Targets());
-        addHack(new Teams());
-        addHack(new Speed());
-        addHack(new LongJump());
-
-        //Combat
-        addHack(new AimAssist());
-        addHack(new AutoClicker());
-        addHack(new Criticals());
-        addHack(new KillAura());
-        addHack(new LegalAura());
-
-        //Player
-        addHack(new AutoTool());
-        addHack(new Eagle());
-        addHack(new Scaffold());
-
-        //Hud
-        addHud(new HArrayList());
-        addHud(new EnemyInfo());
-
-        //Visual
-        addHack(new NightVision());
-        addHack(new Profiler());
-        //addHack(new Xray());
-        addHack(new HudState());
-        if (Core.mode) {
-            addHack(new TestAdmin());
-            addHack(new TestAdmin1());
-            addHack(new TestAdmin2());
-        }
-    }
-
     public static boolean noAimAssist() {
         for (final Hack hack : getHack()) {
-            if (!hack.AimAssist && hack.isToggled()) {
+            if (!hack.aimAssist && hack.isToggled()) {
                 return true;
             }
         }
@@ -100,6 +68,13 @@ public class HackManager {
 
     public static ArrayList<Hud> getHud() {
         return hud;
+    }
+
+    public static ArrayList<HaCd> getAll() {
+        ArrayList<HaCd> list = new ArrayList<>();
+        list.addAll(hacks);
+        list.addAll(hud);
+        return list;
     }
 
     public static boolean isDefault(final Object value) {
@@ -117,10 +92,6 @@ public class HackManager {
 
     public static void addHack(final Hack hack) {
         hacks.add(hack);
-    }
-
-    public void addHud(final Hud mode) {
-        hud.add(mode);
     }
 
     public static Hack getHackE(final String name) {
@@ -157,20 +128,40 @@ public class HackManager {
         }
     }
 
-    public static boolean onPacket(final Object packet, final Connection.Side side) {
+    public static rPacket onPacket(final Object packet, final Connection.Side side) {
         boolean suc = true;
+        ArrayList<onPacket> list = new ArrayList<>();
         for (final Hack hack : HackManager.getHack()) {
             if (hack.isToggled()) {
                 if (Wrapper.level() == null) {
                     continue;
                 }
-                suc &= hack.onPacket(packet, side);
+                int suc1 = hack.onPacket(packet, side);
+                suc &= (suc1 == 1 || suc1 == 2);
+                if (suc1 == 2 || suc1 == 3) {
+                    onPacket onPacket = new onPacket();
+                    onPacket.hack = hack;
+                    onPacket.send = (suc1 == 2);
+                    onPacket.packet = packet;
+                    list.add(onPacket);
+                }
             }
         }
-        return !suc;
+        rPacket rPacket = new rPacket();
+        rPacket.suc = suc;
+        rPacket.onPacket = list;
+        return rPacket;
     }
 
     public static void onAllTick() {
+        if (Wrapper.level() != warn) {
+            warn = Wrapper.level();
+            for (final Hack hack : getHack()) {
+                if (hack.warn) {
+                    hack.isToggled(false);
+                }
+            }
+        }
         if (Utils.nullCheck()) {
             if (!initialized) {
                 initialized = true;
@@ -184,9 +175,10 @@ public class HackManager {
                 }
                 timer.setLastMS();
             }
-        }else {
+        } else {
             initialized = false;
         }
+        onSever();
     }
 
     public static void onSever() {
@@ -233,7 +225,7 @@ public class HackManager {
             } else if (severmode.booc("Mode", "Bind")) {
                 HaCd hack = getSearch(severmode.is("Name"));
                 if (hack != null) {
-                    hack.setKey(Integer.parseInt(severmode.is("Value")));
+                    hack.setKey(severmode.is("Value"));
                 }
             } else if (severmode.booc("Mode", "Hack")) {
                 Hack hack = getHackE(severmode.is("Name"));
@@ -307,7 +299,7 @@ public class HackManager {
         HaCd hacd = (HaCd) object;
         if (value.isName("Key")) {
             if (value.canConvertInt()) {
-                hacd.setKey(value.toInteger());
+                hacd.setKey(value.value);
                 return;
             }
         } else if (value.name.equals("Open")) {
@@ -359,7 +351,7 @@ public class HackManager {
 
     }
 
-    public static void onMouseInputEvent(final InputEvent.MouseInputEvent event) {
+    public static void onMouseInputEvent(final InputEvent.MouseButton event) {
         for (final Hack hack : getHack()) {
             if (hack.isToggled()) {
                 hack.onMouseInputEvent(event);
@@ -375,7 +367,7 @@ public class HackManager {
         }
     }
 
-    public static void onCameraSetup(final EntityViewRenderEvent.CameraSetup event) {
+    public static void onCameraSetup(final ViewportEvent.ComputeCameraAngles event) {
         for (final Hack hack : getHack()) {
             if (hack.isToggled()) {
                 hack.onCameraSetup(event);
@@ -387,6 +379,15 @@ public class HackManager {
         for (final Hack hack : getHack()) {
             if (hack.isToggled()) {
                 hack.onRightClickItem(event);
+            }
+        }
+    }
+
+    public static void onRender(final GuiGraphics event) {
+        for (final Hack hack : getHack()) {
+            if (hack.isToggled() || hack.getName().equals("Hud")) {
+                hack.onRender(event);
+                hack.onRender(event.pose());
             }
         }
     }
@@ -411,7 +412,6 @@ public class HackManager {
                 .collect(Collectors.toList());
     }
 
-
     private static void appendModes(final StringBuilder sb, final Hack hack) {
         for (Value<?> value : hack.getValues()) {
             if (value instanceof ModeValue modeValue && value.getName().equals("Mode")) {
@@ -422,5 +422,61 @@ public class HackManager {
                 }
             }
         }
+    }
+
+    public void addHacks() {
+        //Another
+        addHack(new AntiBot());
+        addHack(new Sprint());
+        addHack(new Flight());
+        addHack(new Targets());
+        addHack(new Teams());
+        addHack(new Speed());
+        addHack(new LongJump());
+
+        //Combat
+        addHack(new AimAssist());
+        addHack(new AutoClicker());
+        addHack(new Criticals());
+        addHack(new KillAura());
+
+        //Player
+        addHack(new AutoTool());
+        addHack(new Eagle());
+        addHack(new NoFall());
+        addHack(new AutoArmor());
+        addHack(new FastPlace());
+        addHack(new ChestStealer());
+
+        //Hud
+        addHud(new HArrayList());
+        addHud(new EnemyInfo());
+        addHud(new MusicLyrics());
+
+        //Visual
+        addHack(new NightVision());
+        addHack(new Profiler());
+        //addHack(new Xray());
+        addHack(new HudState());
+        if (Core.mode) {
+            addHack(new TestAdmin());
+            addHack(new TestAdmin1());
+            addHack(new TestAdmin2());
+        }
+    }
+
+    public void addHud(final Hud mode) {
+        hud.add(mode);
+    }
+
+    public static class rPacket {
+        public boolean suc;
+        public ArrayList<onPacket> onPacket;
+    }
+
+    public static class onPacket {
+        public Hack hack;
+        public boolean send;
+        public Object packet;
     }
 }

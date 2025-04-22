@@ -9,10 +9,22 @@ package space.utils;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-import com.mojang.math.Matrix4f;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.core.BlockPos;
+import org.joml.Matrix4f;
+
+import java.awt.*;
 
 public class RenderUtils {
+
+    public static void drawRect(final GuiGraphics graphics, final int x1, final int y1, final int x2, final int y2, final Color color) {
+        drawRect(graphics.pose(), x1, y1, x2, y2, color.getRGB());
+    }
+
+    public static void drawRect(final GuiGraphics graphics, final int x1, final int y1, final int x2, final int y2, final int color) {
+        drawRect(graphics.pose(), x1, y1, x2, y2, color);
+    }
 
     public static void drawRect(final PoseStack poseStack, final int x1, final int y1, final int x2, final int y2, final int color) {
         int newLeft = x1;
@@ -33,12 +45,10 @@ public class RenderUtils {
         Tesselator tessellation = Tesselator.getInstance();
         BufferBuilder bufferbuilder = tessellation.getBuilder();
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        RenderSystem.disableTexture();
         bufferbuilder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
         vertex(newRight, newBottom, newLeft, color, matrix, bufferbuilder);
         vertex(newLeft, newTop, newRight, color, matrix, bufferbuilder);
         tessellation.end();
-        RenderSystem.enableTexture();
     }
 
     private static int[] swap(final int a, final int b) {
@@ -50,6 +60,10 @@ public class RenderUtils {
                 .color((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF, (color >> 24) & 0xFF).endVertex();
         bufferbuilder.vertex(matrix, x1, y1, 0.0F)
                 .color((color >> 16) & 0xFF, (color >> 8) & 0xFF, color & 0xFF, (color >> 24) & 0xFF).endVertex();
+    }
+
+    public static void drawBlockESP(final PoseStack poseStack, final BlockPos blockPos, final Color color) {
+        // 这是我的世界1.18.1的forge，应该怎么写？
     }
 
 }

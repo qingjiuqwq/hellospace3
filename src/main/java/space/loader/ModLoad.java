@@ -12,8 +12,10 @@ import space.Core;
 
 @Mod("space")
 public class ModLoad {
+
     public ModLoad() {
         Core.mode = true;
         new Core().initialize();
     }
+
 }

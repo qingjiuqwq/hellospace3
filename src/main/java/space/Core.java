@@ -7,13 +7,15 @@
  */
 package space;
 
-import net.minecraftforge.common.MinecraftForge;
 import org.lwjgl.glfw.GLFW;
 import space.hack.Hack;
 import space.hack.hud.Hud;
+import space.hack.hud.element.MusicLyrics;
 import space.manager.EventsHandler;
 import space.manager.HackManager;
+import space.utils.Utils;
 import space.value.*;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -28,78 +30,30 @@ public class Core {
 
     public static boolean mode;
 
-    public void initialize() {
-        new HackManager();
-        MinecraftForge.EVENT_BUS.register(new EventsHandler());
-
-        new Thread(() -> {
-            try {
-                ServerSocket serverSocket = new ServerSocket(23142);
-                System.out.println("Server started. Listening on port 23142...");
-                while (true) {
-                    Socket socket = serverSocket.accept();
-
-                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-
-                    String inputLine;
-                    StringBuilder request = new StringBuilder();
-                    SeverMode severmode = new SeverMode();
-
-                    while ((inputLine = in.readLine()) != null) {
-                        if (inputLine.isEmpty()) {
-                            break;
-                        }
-                        request.append(inputLine).append("\r\n");
-                        int separatorIndex = inputLine.indexOf(":");
-                        if (separatorIndex > 0) {
-                            String name = inputLine.substring(0, separatorIndex).trim();
-                            String value = inputLine.substring(separatorIndex + 1).trim();
-                            severmode.add(name, value);
-                        }
-                    }
-
-                    try {
-                        StringTokenizer tokenizer = new StringTokenizer(request.toString());
-                        String method = tokenizer.nextToken().toUpperCase();
-                        String httpPath = tokenizer.nextToken();
-                        severmode.httpPath = httpPath;
-                        System.out.println("HelloSpace: " + httpPath);
-
-                        if (method.equals("GET")) {
-                            out.print("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" + Disposal(httpPath));
-                        } else if (method.equals("POST")) {
-                            out.print("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" + Disposal(severmode));
-                        }
-                    } catch (NoSuchElementException ex) {
-                        ex.fillInStackTrace();
-                    }
-
-                    out.flush();
-                    socket.close();
-                }
-            } catch (IOException ex) {
-                ex.fillInStackTrace();
-            }
-        }).start();
-    }
-
     // Get
-    public static String Disposal(final String httpPath) {
-        switch (httpPath) {
+    public static String DisposalGet(final SeverMode severMode) {
+        switch (severMode.httpPath) {
             case "/hello" -> {
                 return "Hello-Space";
             }
             case "/list" -> {
                 StringBuilder list = new StringBuilder();
+                String first = severMode.is2("MusicLyricsFirst");
+                if (first != null) {
+                    MusicLyrics.first = Utils.base64(first);
+                }
+                String second = severMode.is2("MusicLyricsSecond");
+                if (second != null) {
+                    MusicLyrics.second = Utils.base64(second);
+                }
                 for (final Hack h : HackManager.getHack()) {
                     list.append("[#(").append(h.getName()).append("[#&&#]").append("[").append(h.isToggled())
-                            .append("]").append(h.isCategory().toString()).append(")#][#@@#]");
+                            .append("]").append(h.isCategory()).append(")#][#@@#]");
                 }
                 return list.toString();
             }
             case "/config", "/visual" -> {
-                return getConfig(1, httpPath.equals("/visual")) + getConfig(2, httpPath.equals("/visual"));
+                return getConfig(1, severMode.isPath("/visual")) + getConfig(2, severMode.isPath("/visual"));
             }
         }
         return "https://npyyds.top/";
@@ -136,27 +90,27 @@ public class Core {
                 }
             }
 
-            int key = h.getKey();
-            if (key != 0) {
+            String key = h.getKeyString();
+            if (!key.equals("NONE")) {
                 if (visual) {
-                    text.append("Key-").append(convertKeycodeToString(key)).append("\n");
-                }else  {
+                    text.append("Key-").append(key).append("\n");
+                } else {
                     text.append("[#(Key[#&&#]").append(key).append(")#][#@@#]");
                 }
             }
 
-            if (!isHack && hud.get(i).x != 0){
+            if (!isHack && hud.get(i).x != 0) {
                 if (visual) {
                     text.append("PosX-").append(hud.get(i).x).append("\n");
-                }else {
+                } else {
                     text.append("[#(PosX[#&&#]").append(hud.get(i).x).append(")#][#@@#]");
                 }
             }
 
-            if (!isHack && hud.get(i).y != 0){
+            if (!isHack && hud.get(i).y != 0) {
                 if (visual) {
                     text.append("PosY-").append(hud.get(i).y).append("\n");
-                }else {
+                } else {
                     text.append("[#(PosY[#&&#]").append(hud.get(i).y).append(")#][#@@#]");
                 }
             }
@@ -169,7 +123,7 @@ public class Core {
                 }
             }
 
-            if (!text.toString().equals("---" + h.getName() + "---\n")){
+            if (!text.toString().equals("---" + h.getName() + "---\n")) {
                 list.append(text);
             }
         }
@@ -218,46 +172,94 @@ public class Core {
             case GLFW.GLFW_KEY_KP_7 -> "P7";
             case GLFW.GLFW_KEY_KP_8 -> "P8";
             case GLFW.GLFW_KEY_KP_9 -> "P9";
-            default -> "Error";
+            default -> "NONE";
+        };
+    }
+
+    public static int convertKeycodeToString(String keycode) {
+        return switch (keycode) {
+            case "A" -> GLFW.GLFW_KEY_A;
+            case "B" -> GLFW.GLFW_KEY_B;
+            case "C" -> GLFW.GLFW_KEY_C;
+            case "D" -> GLFW.GLFW_KEY_D;
+            case "E" -> GLFW.GLFW_KEY_E;
+            case "F" -> GLFW.GLFW_KEY_F;
+            case "G" -> GLFW.GLFW_KEY_G;
+            case "H" -> GLFW.GLFW_KEY_H;
+            case "I" -> GLFW.GLFW_KEY_I;
+            case "J" -> GLFW.GLFW_KEY_J;
+            case "K" -> GLFW.GLFW_KEY_K;
+            case "L" -> GLFW.GLFW_KEY_L;
+            case "M" -> GLFW.GLFW_KEY_M;
+            case "N" -> GLFW.GLFW_KEY_N;
+            case "O" -> GLFW.GLFW_KEY_O;
+            case "P" -> GLFW.GLFW_KEY_P;
+            case "Q" -> GLFW.GLFW_KEY_Q;
+            case "R" -> GLFW.GLFW_KEY_R;
+            case "S" -> GLFW.GLFW_KEY_S;
+            case "T" -> GLFW.GLFW_KEY_T;
+            case "U" -> GLFW.GLFW_KEY_U;
+            case "V" -> GLFW.GLFW_KEY_V;
+            case "W" -> GLFW.GLFW_KEY_W;
+            case "X" -> GLFW.GLFW_KEY_X;
+            case "Y" -> GLFW.GLFW_KEY_Y;
+            case "Z" -> GLFW.GLFW_KEY_Z;
+            case "CTRL" -> GLFW.GLFW_KEY_RIGHT_CONTROL;
+            case "ALT" -> GLFW.GLFW_KEY_RIGHT_ALT;
+            case "P0" -> GLFW.GLFW_KEY_KP_0;
+            case "P1" -> GLFW.GLFW_KEY_KP_1;
+            case "P2" -> GLFW.GLFW_KEY_KP_2;
+            case "P3" -> GLFW.GLFW_KEY_KP_3;
+            case "P4" -> GLFW.GLFW_KEY_KP_4;
+            case "P5" -> GLFW.GLFW_KEY_KP_5;
+            case "P6" -> GLFW.GLFW_KEY_KP_6;
+            case "P7" -> GLFW.GLFW_KEY_KP_7;
+            case "P8" -> GLFW.GLFW_KEY_KP_8;
+            case "P9" -> GLFW.GLFW_KEY_KP_9;
+            default -> 0;
         };
     }
 
     // Post
-    public static String Disposal(final SeverMode severmode) {
-        if (severmode.isPath("/list")) {
+    public static String Disposal(final SeverMode severMode) {
+        if (severMode.isPath("/list")) {
             StringBuilder list = new StringBuilder();
-            if (severmode.bool("Mode", "UiGui")) {
-                String name = severmode.is("Name");
-                for (final Hack h : HackManager.getHack()) {
+            if (severMode.bool("Mode", "UiGui")) {
+                String name = severMode.is("Name");
+                for (final HaCd h : HackManager.getAll()) {
                     if (h.getName().equals(name)) {
                         for (final Value<?> x : h.getValues()) {
+                            if (x.noShow()) {
+                                continue;
+                            }
                             if (x instanceof BooleanValue ff) {
-                                list.append("BooleanValue").append(ff.getName()).append("[#::#]").append(ff.getValue())
-                                        .append("[#@@#]");
+                                list.append("BooleanValue").append(x.getName()).append("[#::#]").append(x.getValue()).append("[#Info#]")
+                                        .append(ff.getInfo()).append("[#@@#]");
                             } else if (x instanceof NumberValue ff) {
-                                list.append("NumberValue").append(ff.getName()).append("[#::#]").append(ff.getValue())
+                                list.append("NumberValue").append(x.getName()).append("[#::#]").append(x.getValue())
                                         .append("[").append("\"").append(ff.getMin()).append("\"").append("-")
                                         .append("\"").append(ff.getMax()).append("\"").append("]").append("[#@@#]");
                             } else if (x instanceof IntValue ff) {
-                                list.append("IntValue").append(ff.getName()).append("[#::#]").append(ff.getValue())
+                                list.append("IntValue").append(x.getName()).append("[#::#]").append(x.getValue())
                                         .append("[").append("\"").append(ff.getMin()).append("\"").append("-")
                                         .append("\"").append(ff.getMax()).append("\"").append("]").append("[#@@#]");
                             } else if (x instanceof ModeValue modeValue) {
-                                list.append("ModeValue").append(modeValue.getName()).append("[#::#]")
+                                list.append("ModeValue").append(x.getName()).append("[#::#]")
                                         .append(modeValue.getMode()).append("[#@@#]");
+                            } else if (x instanceof TextValue) {
+                                list.append("TextValue").append(x.getValue()).append("[#@@#]");
                             }
                         }
-                        list.append("BindValue").append(h.getKey()).append("[#::#]").append("[#@@#]");
+                        list.append("BindValue").append(h.getKeyString()).append("[#::#]").append("[#@@#]");
                         list.append("HackCategory").append(h.isCategory()).append("[#::#]");
-                        list.append("GameIP").append(EventsHandler.gameIp).append("[#::#]");
                         break;
                     }
                 }
 
-            } else if (severmode.bool("Mode", "ModeValue")) {
-                HaCd hack = HackManager.getSearch(severmode.is("Name"));
+            } else if (severMode.bool("Mode", "ModeValue")) {
+                HaCd hack = HackManager.getSearch(severMode.is("Name"));
                 if (hack != null) {
-                    String modename = severmode.is("Value");
+                    String modename = severMode.is("Value");
                     for (final Value<?> x : hack.getValues()) {
                         if (x instanceof ModeValue modeValue) {
                             if (x.getName().equals(modename)) {
@@ -271,10 +273,10 @@ public class Core {
                     }
                 }
 
-            } else if (severmode.bool("Mode", "NumberValue")) {
-                HaCd hack = HackManager.getSearch(severmode.is("Name"));
+            } else if (severMode.bool("Mode", "NumberValue")) {
+                HaCd hack = HackManager.getSearch(severMode.is("Name"));
                 if (hack != null) {
-                    String modename = severmode.is("Value");
+                    String modename = severMode.is("Value");
                     for (final Value<?> x : hack.getValues()) {
                         if (x instanceof NumberValue || x instanceof IntValue) {
                             if (x.getName().equals(modename)) {
@@ -286,19 +288,75 @@ public class Core {
                 }
 
             } else {
-                String param1 = severmode.is("Mode");
+                String param1 = severMode.is("Mode");
                 for (final Hack h : HackManager.getHack()) {
-                    if (h.isCategory().toString().equals(param1)) {
+                    if (h.isCategory().equals(param1)) {
                         list.append("[#(").append(h.getName()).append("[#&&#]").append(h.isToggled())
                                 .append(")#][#@@#]");
                     }
                 }
             }
             return list.toString();
-        } else if (severmode.isPath("/set") || severmode.isPath("/config")) {
-            HackManager.severMode.add(severmode);
+        } else if (severMode.isPath("/set") || severMode.isPath("/config")) {
+            HackManager.severMode.add(severMode);
             return "Ok";
         }
         return "";
+    }
+
+    public void initialize() {
+        new HackManager();
+        new EventsHandler();
+
+        new Thread(() -> {
+            try {
+                ServerSocket serverSocket = new ServerSocket(23142);
+                System.out.println("Server started. Listening on port 23142...");
+                while (true) {
+                    Socket socket = serverSocket.accept();
+
+                    BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+
+                    String inputLine;
+                    StringBuilder request = new StringBuilder();
+                    SeverMode severMode = new SeverMode();
+
+                    while ((inputLine = in.readLine()) != null) {
+                        if (inputLine.isEmpty()) {
+                            break;
+                        }
+                        request.append(inputLine).append("\r\n");
+                        int separatorIndex = inputLine.indexOf(":");
+                        if (separatorIndex > 0) {
+                            String name = inputLine.substring(0, separatorIndex).trim();
+                            String value = inputLine.substring(separatorIndex + 1).trim();
+                            severMode.add(name, value);
+                        }
+                    }
+
+                    try {
+                        StringTokenizer tokenizer = new StringTokenizer(request.toString());
+                        String method = tokenizer.nextToken().toUpperCase();
+                        String httpPath = tokenizer.nextToken();
+                        severMode.httpPath = httpPath;
+                        System.out.println("HelloSpace: " + httpPath);
+
+                        if (method.equals("GET")) {
+                            out.print("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" + DisposalGet(severMode));
+                        } else if (method.equals("POST")) {
+                            out.print("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n" + Disposal(severMode));
+                        }
+                    } catch (NoSuchElementException ex) {
+                        ex.fillInStackTrace();
+                    }
+
+                    out.flush();
+                    socket.close();
+                }
+            } catch (IOException ex) {
+                ex.fillInStackTrace();
+            }
+        }).start();
     }
 }

@@ -9,14 +9,9 @@ package space.value;
 
 import java.util.ArrayList;
 
-public class ModeValue extends Value<Mode>
-{
-    private final Mode[] modes;
+public class ModeValue extends Value<Mode> {
     public final String Default;
-
-    public Mode[] getModes() {
-        return this.modes;
-    }
+    private final Mode[] modes;
 
     public ModeValue(final String modeName, final Mode... modes) {
         super(modeName, null);
@@ -28,6 +23,10 @@ public class ModeValue extends Value<Mode>
         super(modeName, null);
         this.modes = modes.toArray(new Mode[0]);
         this.Default = this.getMode();
+    }
+
+    public Mode[] getModes() {
+        return this.modes;
     }
 
     public Mode getValue(final String name) {
@@ -48,10 +47,6 @@ public class ModeValue extends Value<Mode>
         return "";
     }
 
-    public boolean equals(final String name) {
-        return this.getMode().equals(name);
-    }
-
     public void setMode(final String name) {
         boolean succeed = false;
 
@@ -69,6 +64,10 @@ public class ModeValue extends Value<Mode>
         }
     }
 
+    public boolean equals(final String name) {
+        return this.getMode().equals(name);
+    }
+
     public Mode getValue() {
         for (final Mode mode : this.getModes()) {
             if (mode.isToggled()) {
@@ -80,5 +79,9 @@ public class ModeValue extends Value<Mode>
 
     public String getDefault() {
         return Default;
+    }
+
+    public int getLength() {
+        return this.modes.length;
     }
 }

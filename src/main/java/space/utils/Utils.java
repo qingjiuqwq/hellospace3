@@ -8,8 +8,8 @@
 package space.utils;
 
 import net.minecraft.client.KeyMapping;
+import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ServerboundInteractPacket;
-import net.minecraft.network.protocol.game.ServerboundUseItemPacket;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -22,7 +22,13 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 import space.hack.Hack;
+import space.utils.vec.Vec4;
+import space.utils.vec.VecPos;
+import space.utils.vec.VecPos2;
+
 import java.awt.*;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Objects;
 import java.util.Random;
 
@@ -99,70 +105,96 @@ public class Utils {
         return -1;
     }
 
-    public static void upRotations(final Entity target, final float speed) {
-        float[] rotations = LowRotations(target, speed);
-        if (rotations != null) {
-            Wrapper.player().setYRot(rotations[0]);
+    public static void upRotations(final Entity target, final int speed, final int deltaYMode) {
+        VecPos vecPos = (deltaYMode == 0) ?
+                getSimpleRotations(target) :
+                getSimpleRotations(target, deltaYMode);
+        float current = Wrapper.player().getYRot();
+        float angleDiff = (vecPos.yRot - current + 360) % 360;
+        if (angleDiff > 180) angleDiff -= 360;
+
+        if (Math.abs(angleDiff) <= 0.01f) {
+            return;
         }
+
+        float step = Math.signum(angleDiff) * Math.min(speed, Math.abs(angleDiff));
+        float newYaw = current + step;
+
+        newYaw = (newYaw % 360 + 360) % 360;
+        Wrapper.player().setYRot(newYaw);
     }
 
-    public static float[] LowRotations(final Entity target, final float speed) {
-        float[] rotations = getSimpleRotations(target);
-        return speed == 11 ?  rotations : updateRotation(rotations[1], rotations[0], speed);
+    public static void upRotations(final Entity target, final int speed) {
+        upRotations(target, speed, 1);
     }
 
-    public static float[] getSimpleRotations(final Entity targetEntity) {
+    public static VecPos getSimpleRotations(final Entity targetEntity) {
+        return getSimpleRotations(targetEntity, random(1, 2));
+    }
 
-        double playerX = Wrapper.player().getX();
-        double playerZ = Wrapper.player().getZ();
-        double playerY;
+    public static VecPos getSimpleRotations(final Entity targetEntity, final int deltaYMode) {
+        return getSimpleRotations(targetEntity, Wrapper.player().position(), deltaYMode);
+    }
 
-        boolean random = random(1, 2) == 1;
-
-        if (random) {
-            playerY = Wrapper.player().getY() + Wrapper.player().getEyeHeight();
-        } else {
-            playerY = Wrapper.player().getBoundingBox().minY + Wrapper.player().getEyeHeight();
-        }
+    public static VecPos getSimpleRotations(final Entity targetEntity, final double playerX, final double playerY, final double playerZ, final int deltaYMode) {
 
         double deltaX = targetEntity.getX() - playerX;
         double deltaZ = targetEntity.getZ() - playerZ;
-        double deltaY;
-
-        if (random) {
-            deltaY = targetEntity.getY() + targetEntity.getBbHeight() / 2.0 - playerY;
-        } else {
-            deltaY = targetEntity.getY() + targetEntity.getEyeHeight() - playerY;
-        }
+        double deltaY = getDeltaY(targetEntity, deltaYMode, playerY + Wrapper.player().getEyeHeight());
 
         double distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
         double yRot = Math.toDegrees(-Math.atan2(deltaX, deltaZ));
         double xRot = -Math.toDegrees(Math.atan2(deltaY, distance));
 
-        return new float[]{(float) yRot, clampXRot(xRot)};
+        return new VecPos((float) yRot, clampXRot(xRot));
     }
 
-    public static float[] updateRotation(final float myYRot, final float myXRot, final float yRot, final float xRot, final float speed) {
-
-        float currentXRot = myXRot;
-        float currentYRot = myYRot;
-
-        if (Math.abs(currentXRot - xRot) < 0.01f && Math.abs(currentYRot - yRot) < 0.01f) {
-            return null;
+    public static double getDeltaY(Entity targetEntity, int deltaYMode, double playerY) {
+        if (deltaYMode == 1) {
+            return targetEntity.getY() + targetEntity.getEyeHeight() - playerY;
+        } else {
+            return targetEntity.getY() + targetEntity.getBbHeight() / 2.0 - playerY;
         }
-
-        if (Math.abs(currentXRot - xRot) > 0.01f) {
-            currentXRot += Math.signum(xRot - currentXRot) * Math.min(speed, Math.abs(xRot - currentXRot));
-        }
-        if (Math.abs(currentYRot - yRot) > 0.01f) {
-            currentYRot += Math.signum(yRot - currentYRot) * Math.min(speed, Math.abs(yRot - currentYRot));
-        }
-
-        return new float[]{currentYRot, currentXRot};
     }
 
-    public static float[] updateRotation(final float xRot, final float yRot, final float speed) {
-        return updateRotation(Wrapper.player().getYRot() , Wrapper.player().getXRot(), yRot, xRot, speed);
+    public static VecPos getSimpleRotations(final Entity targetEntity, final Vec3 player, final int deltaYMode) {
+        return getSimpleRotations(targetEntity, player.x, player.y, player.z, deltaYMode);
+    }
+
+    public static VecPos getSimpleRotations(final Entity targetEntity, final Vec4 player, final int deltaYMode) {
+        return getSimpleRotations(targetEntity, player.x, player.y, player.z, deltaYMode);
+    }
+
+    public static VecPos getSimpleRotations(final Entity targetEntity, final Vec4 player) {
+        return getSimpleRotations(targetEntity, player, random(1, 2));
+    }
+
+    public static VecPos2 updateRotation(final VecPos pos, VecPos current, final int speed) {
+        int executions = 11 - speed;
+        if (pos.yRot > current.yRot) {
+            float stepSize1 = (pos.yRot - current.yRot) / executions;
+            float stepSize2 = (pos.xRot - current.xRot) / executions;
+            current.yRot += stepSize1;
+            if (current.yRot > pos.yRot) {
+                current.yRot = pos.yRot;
+            }
+            current.xRot += stepSize2;
+            if (current.xRot > pos.xRot) {
+                current.xRot = pos.xRot;
+            }
+        } else if (current.yRot > pos.yRot) {
+            float stepSize1 = (current.yRot - pos.yRot) / executions;
+            float stepSize2 = (current.xRot - pos.xRot) / executions;
+            current.yRot -= stepSize1;
+            if (current.yRot < pos.yRot) {
+                current.yRot = pos.yRot;
+            }
+            current.xRot -= stepSize2;
+            if (current.xRot < pos.xRot) {
+                current.xRot = pos.xRot;
+            }
+        }
+        return new VecPos2(current.yRot, current.xRot, current.xRot == pos.xRot && current.yRot == pos.yRot);
     }
 
     private static float clampXRot(final double xRot) {
@@ -177,26 +209,24 @@ public class Utils {
         return Wrapper.level().entitiesForRendering();
     }
 
-    public static void processAttack(final Entity target, final String mode, final boolean swing) {
+    public static Packet<?> processAttack(final Entity target, final String mode, final boolean swing) {
         ItemStack offHandItem = Wrapper.player().getOffhandItem();
-        if(!offHandItem.isEmpty() && offHandItem.isEdible()) {
+        if (!offHandItem.isEmpty() && offHandItem.getItem() == Items.SHIELD) {
             switch (mode) {
                 case "Packet":
-                    Wrapper.sendPacket(new ServerboundUseItemPacket(InteractionHand.OFF_HAND));
-                    Wrapper.swing(InteractionHand.OFF_HAND, target);
+                    // Wrapper.sendPacket(new ServerboundUseItemPacket(InteractionHand.OFF_HAND, Wrapper.player()));
+                    Wrapper.swing(InteractionHand.OFF_HAND, swing);
                     break;
                 case "Mouse":
                     KeyMapping.click(Wrapper.mc().options.keyUse.getKey());
                     break;
                 case "UseItem":
-                    Wrapper.controller().useItem(Wrapper.player(), Wrapper.level(), InteractionHand.OFF_HAND);
+                    Wrapper.controller().useItem(Wrapper.player(), InteractionHand.OFF_HAND);
                     break;
             }
         }
-        if (swing) {
-            Wrapper.swing(InteractionHand.MAIN_HAND, target);
-        }
-        Wrapper.sendPacket(ServerboundInteractPacket.createAttackPacket(target, Wrapper.player().isShiftKeyDown()));
+        // Wrapper.attack(target);
+        return ServerboundInteractPacket.createAttackPacket(target, Wrapper.player().isShiftKeyDown());
     }
 
     public static LivingEntity getTarget(final Hack hack) {
@@ -205,8 +235,8 @@ public class Utils {
 
     public static LivingEntity getTarget(final Hack hack, final String mouseClick, final String fov, final String range, final String hurtTime) {
         if (hack.isBooleanValue(mouseClick) && !(Wrapper.mc().options.keyAttack.isDown() || Wrapper.mc().options.keyUse.isDown())) {
-            hack.Sprint = true;
-            hack.AimAssist = true;
+            hack.sprint = true;
+            hack.aimAssist = true;
             return null;
         }
 
@@ -221,5 +251,9 @@ public class Utils {
         }
 
         return null;
+    }
+
+    public static String base64(String text) {
+        return new String(Base64.getDecoder().decode(text), StandardCharsets.UTF_8);
     }
 }

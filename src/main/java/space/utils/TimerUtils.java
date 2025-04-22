@@ -7,8 +7,9 @@
  */
 package space.utils;
 
-public class TimerUtils
-{
+import space.value.IntValue;
+
+public class TimerUtils {
     public long lastMS;
 
     public TimerUtils() {
@@ -22,8 +23,24 @@ public class TimerUtils
         return this.isDelayX((1000 + j1 - k1 + l1) / delay);
     }
 
+    public boolean isDelay(final int min, final int max) {
+        return this.isDelay(Utils.random(min, max));
+    }
+
     public boolean isDelayX(final long delay) {
-        return System.currentTimeMillis() - this.lastMS >= delay;
+        return this.getDelay() >= delay;
+    }
+
+    public boolean isDelayX(final int min, final int max) {
+        return this.isDelayX(Utils.random(min, max));
+    }
+
+    public boolean isDelayX(final IntValue min, final IntValue max) {
+        return this.isDelayX(min.getValue(), max.getValue());
+    }
+
+    public long getDelay() {
+        return System.currentTimeMillis() - this.lastMS;
     }
 
     public void setLastMS() {

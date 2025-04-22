@@ -14,9 +14,8 @@ import space.utils.Wrapper;
 import space.value.Mode;
 import space.value.ModeValue;
 
-public class Sprint extends Hack
-{
-    public final ModeValue mode;
+public class Sprint extends Hack {
+    private final ModeValue mode;
 
     public Sprint() {
         super("Sprint", HackCategory.Another);
@@ -26,7 +25,7 @@ public class Sprint extends Hack
 
     @Override
     public void onAllTick() {
-        if(this.onSprint() && !Wrapper.player().isSprinting()) {
+        if (this.onSprint() && !Wrapper.player().isSprinting()) {
             if (this.mode.getValue("Strict").isToggled()) {
                 if (Wrapper.mc().options.keyShift.isDown() || Wrapper.player().getFoodData().getFoodLevel() <= 6 ||
                         Wrapper.player().input.forwardImpulse <= 0 || Wrapper.player().horizontalCollision ||
@@ -38,7 +37,7 @@ public class Sprint extends Hack
 
     public boolean onSprint() {
         for (final Hack hack : HackManager.getHack()) {
-            if (!hack.Sprint && hack.isToggled()) {
+            if (!hack.sprint && hack.isToggled()) {
                 return false;
             }
         }

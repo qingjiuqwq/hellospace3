@@ -12,11 +12,13 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
 import net.minecraft.client.multiplayer.ClientPacketListener;
-import net.minecraft.network.protocol.game.*;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import space.manager.ClassManager;
 import space.manager.HackManager;
 
-public class Connection extends ChannelDuplexHandler
-{
+public class Connection extends ChannelDuplexHandler {
+
+    public final TimerUtils rotSpeed = new TimerUtils();
 
     public Connection() {
         try {
@@ -31,47 +33,41 @@ public class Connection extends ChannelDuplexHandler
     }
 
     @Override
-     public void channelRead(final ChannelHandlerContext ctx, final Object packet) throws Exception {
-        if (packet instanceof ClientboundSetEntityDataPacket ||
-                packet instanceof ChannelHandlerContext ||
-                packet instanceof ClientboundEntityEventPacket ||
-                packet instanceof ClientboundRotateHeadPacket ||
-                packet instanceof ClientboundMoveEntityPacket.Pos ||
-                packet instanceof ClientboundMoveEntityPacket.PosRot ||
-                packet instanceof ClientboundTeleportEntityPacket ||
-                packet instanceof ClientboundSetTimePacket ||
-                packet instanceof ClientboundKeepAlivePacket ||
-                packet instanceof ClientboundPlayerInfoPacket ||
-                packet instanceof ClientboundSetEntityMotionPacket){
-        }else {
-            System.out.println(packet.getClass().getName());
+    public void channelRead(final ChannelHandlerContext ctx, final Object packet) throws Exception {
+        HackManager.rPacket rPacket = HackManager.onPacket(packet, Side.IN);
+        if (rPacket.suc) {
+            super.channelRead(ctx, packet);
         }
-        if (HackManager.onPacket(packet, Side.IN)) {
-            return;
+        for (HackManager.onPacket on : rPacket.onPacket) {
+            on.hack.onPFixes(packet, Side.IN, on.send);
         }
-        super.channelRead(ctx, packet);
     }
 
     @Override
     public void write(final ChannelHandlerContext ctx, final Object packet, final ChannelPromise promise) throws Exception {
-        if (packet instanceof ServerboundMovePlayerPacket.PosRot ||
-                packet instanceof ServerboundSwingPacket ||
-                packet instanceof ServerboundKeepAlivePacket ||
-                packet instanceof ServerboundMovePlayerPacket.Pos ||
-                packet instanceof ServerboundContainerClickPacket ||
-                packet instanceof ServerboundAcceptTeleportationPacket ||
-                packet instanceof ServerboundMovePlayerPacket.Rot){
-        }else {
-            System.out.println(packet.getClass().getName());
+        HackManager.rPacket rPacket = HackManager.onPacket(packet, Side.OUT);
+        if (rPacket.suc) {
+            if (packet instanceof ServerboundMovePlayerPacket.Rot || packet instanceof ServerboundMovePlayerPacket.Pos || packet instanceof ServerboundMovePlayerPacket.PosRot) {
+                // System.out.println("Delay: " + packet.getClass().getName() + " " + this.rotSpeed.getDelay());
+                if (packet instanceof ServerboundMovePlayerPacket.Rot || packet instanceof ServerboundMovePlayerPacket.PosRot) {
+                    Object yRot1 = ReflectionHelper.getPrivateValue(packet, ClassManager.serverboundMovePlayerPacket_yRot);
+                    Object xRot1 = ReflectionHelper.getPrivateValue(packet, ClassManager.serverboundMovePlayerPacket_xRot);
+                    if (yRot1 != null && xRot1 != null) {
+                        float yRot = (float) yRot1;
+                        float xRot = (float) xRot1;
+                        // ChatUtils.message(yRot + " " + xRot);
+                    }
+                }
+                this.rotSpeed.setLastMS();
+            }
+            super.write(ctx, packet, promise);
         }
-        if (HackManager.onPacket(packet, Side.OUT)) {
-            return;
+        for (HackManager.onPacket on : rPacket.onPacket) {
+            on.hack.onPFixes(packet, Side.OUT, on.send);
         }
-        super.write(ctx, packet, promise);
     }
 
-    public enum Side
-    {
+    public enum Side {
         IN,
         OUT
     }

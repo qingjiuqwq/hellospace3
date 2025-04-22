@@ -7,13 +7,15 @@
  */
 package space.value;
 
+import space.Core;
+
 import java.util.ArrayList;
 
 public class HaCd {
 
+    public final ArrayList<Value> values;
     public int key;
     public String name;
-    public final ArrayList<Value> values;
 
     public HaCd(final String name) {
         this.key = 0;
@@ -31,12 +33,20 @@ public class HaCd {
         return this.values;
     }
 
+    public int getKey() {
+        return this.key;
+    }
+
     public void setKey(final int key) {
         this.key = key;
     }
 
-    public int getKey() {
-        return this.key;
+    public void setKey(final String key) {
+        this.key = Core.convertKeycodeToString(key);
+    }
+
+    public String getKeyString() {
+        return Core.convertKeycodeToString(this.getKey());
     }
 
     public String getName() {
@@ -45,6 +55,14 @@ public class HaCd {
 
     public void setName(final String name) {
         this.name = name;
+    }
+
+    public String isCategory() {
+        return "";
+    }
+
+    public void toggle() {
+
     }
 
     public void inBooleanValue(final String BooleanValue) {

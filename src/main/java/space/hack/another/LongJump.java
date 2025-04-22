@@ -16,9 +16,9 @@ import space.value.ModeValue;
 import java.util.Objects;
 
 public class LongJump extends Hack {
-    public final ModeValue mode;
-    int jumpTick = 0;
-    boolean ground = false;
+    private final ModeValue mode;
+    public int jumpTick = 0;
+    public boolean ground = false;
 
     public LongJump() {
         super("LongJump", HackCategory.Another);
@@ -30,19 +30,19 @@ public class LongJump extends Hack {
     public void onEnable() {
         this.jumpTick = 0;
         this.ground = false;
-        this.Sprint = true;
+        this.sprint = true;
     }
 
     public int JUMP() {
-        if (this.mode.getValue("9JUMP").isToggled()){
+        if (this.mode.getValue("9JUMP").isToggled()) {
             return 9;
-        }else if (this.mode.getValue("12JUMP").isToggled()){
+        } else if (this.mode.getValue("12JUMP").isToggled()) {
             return 12;
-        }else if (this.mode.getValue("15JUMP").isToggled()){
+        } else if (this.mode.getValue("15JUMP").isToggled()) {
             return 15;
-        }else if (this.mode.getValue("17JUMP").isToggled()){
+        } else if (this.mode.getValue("17JUMP").isToggled()) {
             return 17;
-        }else if (this.mode.getValue("25JUMP").isToggled()){
+        } else if (this.mode.getValue("25JUMP").isToggled()) {
             return 25;
         }
         return 0;
@@ -50,13 +50,13 @@ public class LongJump extends Hack {
 
     @Override
     public void onAllTick() {
-        if (this.ground){
-            if(jumpTick > JUMP()){
+        if (this.ground) {
+            if (jumpTick > JUMP()) {
                 this.jumpTick = 0;
                 this.ground = false;
-                this.Sprint = true;
-            }else {
-                this.Sprint = false;
+                this.sprint = true;
+            } else {
+                this.sprint = false;
                 Objects.requireNonNull(Wrapper.mc().player).jumpFromGround();
                 jumpTick++;
             }

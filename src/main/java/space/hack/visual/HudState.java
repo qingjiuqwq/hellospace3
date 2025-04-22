@@ -7,7 +7,7 @@
  */
 package space.hack.visual;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 import space.hack.Hack;
 import space.hack.HackCategory;
 import space.hack.hud.ClickGUI;
@@ -22,7 +22,9 @@ public class HudState extends Hack {
     public HudState() {
         super("Hud", HackCategory.Visual);
         for (Hud mode : HackManager.getHud()) {
-            this.addValue(new BooleanValue(mode.name, false));
+            BooleanValue booleanValue = new BooleanValue(mode.name, false);
+            booleanValue.setInfo(mode.name);
+            this.addValue(booleanValue);
         }
     }
 
@@ -30,15 +32,24 @@ public class HudState extends Hack {
     public void onEnable() {
         this.isToggled(false);
         if (Utils.nullCheck()) {
-            Wrapper.mc().setScreen(new ClickGUI());
+            boolean show = false;
+            for (Hud mode : HackManager.getHud()) {
+                if (mode.isToggled()) {
+                    show = true;
+                }
+            }
+            if (show) {
+                Wrapper.mc().setScreen(new ClickGUI());
+            }
         }
     }
 
     @Override
-    public void onRender(final PoseStack poseStack) {
+    public void onRender(final GuiGraphics graphics) {
         for (Hud mode : HackManager.getHud()) {
             if (mode.isToggled()) {
-                mode.onRender(poseStack, false);
+                mode.onRender(graphics);
+                mode.onRender(graphics, false);
             }
         }
     }

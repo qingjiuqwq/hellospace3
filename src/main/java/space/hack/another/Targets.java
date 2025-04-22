@@ -11,12 +11,11 @@ import space.hack.Hack;
 import space.hack.HackCategory;
 import space.value.BooleanValue;
 
-public class Targets extends Hack
-{
+public class Targets extends Hack {
     public Targets() {
         super("Targets", HackCategory.Another);
         this.addValue(
-                new BooleanValue("Players",true),
+                new BooleanValue("Players", true),
                 new BooleanValue("Mobs", true),
                 new BooleanValue("Invisible", false),
                 new BooleanValue("Sleeping", false)

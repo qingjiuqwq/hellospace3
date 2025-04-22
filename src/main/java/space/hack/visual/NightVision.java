@@ -9,14 +9,14 @@ package space.hack.visual;
 
 import space.hack.Hack;
 import space.hack.HackCategory;
+import space.utils.ReflectionHelper;
 import space.utils.Utils;
 import space.utils.Wrapper;
 import space.value.Mode;
 import space.value.ModeValue;
 
-public class NightVision extends Hack
-{
-    public final ModeValue mode;
+public class NightVision extends Hack {
+    private final ModeValue mode;
     boolean usedB = false;
     boolean usedE = false;
 
@@ -30,9 +30,9 @@ public class NightVision extends Hack
     public void onDisable() {
         if (usedB || this.mode.getValue("Brightness").isToggled()) {
             usedB = false;
-            Wrapper.mc().options.gamma = 1.0f;
+            ReflectionHelper.setPrivateValue(Wrapper.mc().options, 1.0f, "gamma", "f_92071_");
         }
-        if(usedE || this.mode.getValue("Effect").isToggled()) {
+        if (usedE || this.mode.getValue("Effect").isToggled()) {
             Utils.removeEffect(16);
             usedE = false;
         }
@@ -41,14 +41,14 @@ public class NightVision extends Hack
     @Override
     public void onAllTick() {
         if (this.mode.getValue("Brightness").isToggled()) {
-            if (usedE){
+            if (usedE) {
                 Utils.removeEffect(16);
             }
-            Wrapper.mc().options.gamma = 10.0f;
+            ReflectionHelper.setPrivateValue(Wrapper.mc().options, 10.0f, "gamma", "f_92071_");
             usedB = true;
         } else {
-            if (usedB){
-                Wrapper.mc().options.gamma = 1.0f;
+            if (usedB) {
+                ReflectionHelper.setPrivateValue(Wrapper.mc().options, 1.0f, "gamma", "f_92071_");
             }
             Utils.addEffect(16, 1000, 3);
             usedE = true;

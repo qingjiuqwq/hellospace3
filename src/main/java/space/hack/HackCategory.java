@@ -7,8 +7,7 @@
  */
 package space.hack;
 
-public enum HackCategory
-{
+public enum HackCategory {
     Another,
     Player,
     Visual,

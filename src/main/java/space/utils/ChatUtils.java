@@ -8,13 +8,12 @@
 package space.utils;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.Component;
 
-public class ChatUtils
-{
+public class ChatUtils {
 
     public static void message(final String message) {
-        Wrapper.mc().gui.getChat().addMessage(new TextComponent(ChatFormatting.RED + "[" + ChatFormatting.GOLD + "Space" + ChatFormatting.RED + "]" + ChatFormatting.WHITE + " " + message));
+        Wrapper.mc().gui.getChat().addMessage(Component.nullToEmpty(ChatFormatting.RED + "[" + ChatFormatting.GOLD + "Space" + ChatFormatting.RED + "]" + ChatFormatting.WHITE + " " + message));
     }
 
     public static void warning(final String message) {

@@ -12,23 +12,13 @@ import space.hack.HackCategory;
 import space.value.BooleanValue;
 
 public class TestAdmin2 extends Hack {
-    public final BooleanValue boo1X;
-    public final BooleanValue boo2X;
-    public final BooleanValue boo3X;
-    public final BooleanValue boo4X;
-    public final BooleanValue boo5X;
-    public final BooleanValue boo6X;
     public static boolean boo1 = false, boo2 = false, boo3 = false, boo4 = false, boo5 = false, boo6 = false;
-
-    @Override
-    public void onAllTick() {
-        boo1 = boo1X.getValue();
-        boo2 = boo2X.getValue();
-        boo3 = boo3X.getValue();
-        boo4 = boo4X.getValue();
-        boo5 = boo5X.getValue();
-        boo6 = boo6X.getValue();
-    }
+    private final BooleanValue boo1X;
+    private final BooleanValue boo2X;
+    private final BooleanValue boo3X;
+    private final BooleanValue boo4X;
+    private final BooleanValue boo5X;
+    private final BooleanValue boo6X;
 
     public TestAdmin2() {
         super("TestAdmin2", HackCategory.Visual);
@@ -40,5 +30,15 @@ public class TestAdmin2 extends Hack {
         this.boo6X = new BooleanValue("boo6", false);
         this.addValue(this.boo1X, this.boo2X, this.boo3X, this.boo4X, this.boo5X, this.boo6X);
     }
-     
+
+    @Override
+    public void onAllTick() {
+        boo1 = boo1X.getValue();
+        boo2 = boo2X.getValue();
+        boo3 = boo3X.getValue();
+        boo4 = boo4X.getValue();
+        boo5 = boo5X.getValue();
+        boo6 = boo6X.getValue();
+    }
+
 }

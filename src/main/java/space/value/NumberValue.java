@@ -7,11 +7,10 @@
  */
 package space.value;
 
-public class NumberValue extends Value<Double>
-{
+public class NumberValue extends Value<Double> {
+    public final Double Default;
     protected final Double min;
     protected final Double max;
-    public final Double Default;
 
     public NumberValue(final String name, final Double defaultValue, final Double min, final Double max) {
         super(name, defaultValue);
@@ -27,8 +26,10 @@ public class NumberValue extends Value<Double>
     public void setValue(final double value) {
         if (value > this.max) {
             this.value = this.max;
-        }else if (value < this.min) {
+        } else if (value < this.min) {
             this.value = this.min;
+        } else {
+            this.value = value;
         }
     }
 

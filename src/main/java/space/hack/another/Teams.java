@@ -12,8 +12,7 @@ import space.hack.HackCategory;
 import space.value.Mode;
 import space.value.ModeValue;
 
-public class Teams extends Hack
-{
+public class Teams extends Hack {
     public Teams() {
         super("Teams", HackCategory.Another);
         this.addValue(

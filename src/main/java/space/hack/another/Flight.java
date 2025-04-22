@@ -14,9 +14,8 @@ import space.utils.Wrapper;
 import space.value.Mode;
 import space.value.ModeValue;
 
-public class Flight extends Hack
-{
-    public final ModeValue mode;
+public class Flight extends Hack {
+    private final ModeValue mode;
 
     public Flight() {
         super("Flight", HackCategory.Another);
@@ -26,14 +25,14 @@ public class Flight extends Hack
 
     @Override
     public void onAllTick() {
-        switch (this.mode.getMode()){
-            case "Jetpack" :
+        switch (this.mode.getMode()) {
+            case "Jetpack":
                 if (Wrapper.mc().options.keyJump.isDown()) {
                     Wrapper.player().jumpFromGround();
                 }
                 break;
-            case "Simple" :
-                if (!Wrapper.player().getAbilities().flying){
+            case "Simple":
+                if (!Wrapper.player().getAbilities().flying) {
                     Wrapper.player().getAbilities().flying = true;
                 }
                 break;
@@ -44,8 +43,8 @@ public class Flight extends Hack
     @Override
     public void onDisable() {
         if (Utils.nullCheck()) {
-            if(this.mode.getValue("Simple").isToggled()){
-                if(Wrapper.player().getAbilities().flying) {
+            if (this.mode.getValue("Simple").isToggled()) {
+                if (Wrapper.player().getAbilities().flying) {
                     Wrapper.player().getAbilities().flying = false;
                 }
             }

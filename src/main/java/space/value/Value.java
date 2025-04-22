@@ -7,12 +7,13 @@
  */
 package space.value;
 
-public class Value<Object>
-{
-    public Object value;
-    private final String name;
+public class Value<Object> {
+    protected final String name;
+    protected Object value;
+    protected boolean show;
 
     public Value(final String name, final Object defaultValue) {
+        this.show = true;
         this.name = name;
         this.value = defaultValue;
     }
@@ -27,5 +28,13 @@ public class Value<Object>
 
     public void setValue(final Object value) {
         this.value = value;
+    }
+
+    public boolean noShow() {
+        return !show;
+    }
+
+    public void setShow(boolean show) {
+        this.show = show;
     }
 }

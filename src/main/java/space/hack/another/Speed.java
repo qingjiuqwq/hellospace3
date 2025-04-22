@@ -16,7 +16,7 @@ import space.value.ModeValue;
 import java.util.Objects;
 
 public class Speed extends Hack {
-    public final ModeValue mode;
+    private final ModeValue mode;
 
     public Speed() {
         super("Speed", HackCategory.Another);
@@ -27,9 +27,9 @@ public class Speed extends Hack {
     @Override
     public void onAllTick() {
         if (this.mode.getValue("HYT").isToggled() || this.mode.getValue("Jumping").isToggled()) {
-            if (Wrapper.player().input.forwardImpulse > 0 && Wrapper.player().isOnGround()) {
+            if (Wrapper.player().input.forwardImpulse > 0 && Wrapper.player().onGround()) {
                 Objects.requireNonNull(Wrapper.mc().player).jumpFromGround();
-                if (this.mode.getValue("Jumping").isToggled()){
+                if (this.mode.getValue("Jumping").isToggled()) {
                     Wrapper.mc().player.jumpFromGround();
                     Wrapper.mc().player.jumpFromGround();
                     Wrapper.mc().player.jumpFromGround();

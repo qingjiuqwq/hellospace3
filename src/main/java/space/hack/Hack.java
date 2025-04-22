@@ -8,36 +8,38 @@
 package space.hack;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
-import net.minecraftforge.client.event.EntityViewRenderEvent;
 import net.minecraftforge.client.event.InputEvent;
+import net.minecraftforge.client.event.ViewportEvent;
 import space.utils.Connection;
 import space.value.HaCd;
 
-public class Hack extends HaCd
-{
-    public boolean Sprint;
-    public boolean AimAssist;
-    public boolean AutoTool;
-    public boolean show;
-    public boolean toggled;
-    public final HackCategory category;
+public class Hack extends HaCd {
+    private final HackCategory category;
+    public boolean warn;
+    public boolean sprint = true;
+    public boolean aimAssist = true;
+    public boolean autoTool = true;
+    private boolean show = true;
+    private boolean toggled = false;
 
     public Hack(final String name, final HackCategory category) {
-        super(name);
-        this.category = category;
-        this.toggled = false;
-        this.show = true;
-        this.Sprint = true;
-        this.AimAssist = true;
-        this.AutoTool = true;
+        this(name, category, false);
     }
 
+    public Hack(final String name, final HackCategory category, final boolean warn) {
+        super(name);
+        this.category = category;
+        this.warn = warn;
+    }
+
+    @Override
     public void toggle() {
         if (!this.isToggled()) {
-            this.toggled = true;
             this.onEnable();
+            this.toggled = true;
         } else {
             this.toggled = false;
             this.onDisable();
@@ -63,8 +65,9 @@ public class Hack extends HaCd
         this.show = show;
     }
 
-    public HackCategory isCategory(){
-        return this.category;
+    @Override
+    public String isCategory() {
+        return this.category.toString();
     }
 
     public void onEnable() {
@@ -79,7 +82,7 @@ public class Hack extends HaCd
     public void onLeftClickBlock(final BlockPos event) {
     }
 
-    public void onMouseInputEvent(final InputEvent.MouseInputEvent event) {
+    public void onMouseInputEvent(final InputEvent event) {
     }
 
     public void onRightClickItem(final Object event) {
@@ -88,14 +91,32 @@ public class Hack extends HaCd
     public void onAttack(final Entity event) {
     }
 
-    public void onCameraSetup(final EntityViewRenderEvent.CameraSetup event) {
+    public void onCameraSetup(final ViewportEvent.ComputeCameraAngles event) {
+    }
+
+    public void onRender(final GuiGraphics graphics) {
     }
 
     public void onRender(final PoseStack poseStack) {
     }
 
-    public boolean onPacket(final Object packet, final Connection.Side side) {
-        return true;
+    /**
+     * @param packet 发包
+     * @param side   客户端与服务端
+     * @return 0 取消发送 1 发送 2 发送并修复包 3 取消并修复
+     */
+    public int onPacket(final Object packet, final Connection.Side side) {
+        return 1;
+    }
+
+    /**
+     * @param packet 发包
+     * @param side   客户端与服务端
+     * @param send   发送修复 还是 取消修复
+     *               客户端与服务端同步时，修复数据包
+     *               全称 onPacketFixes
+     */
+    public void onPFixes(final Object packet, final Connection.Side side, final boolean send) {
     }
 
 }

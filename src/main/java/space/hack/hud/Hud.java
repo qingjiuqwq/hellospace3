@@ -7,14 +7,15 @@
  */
 package space.hack.hud;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 import space.hack.Hack;
 import space.manager.HackManager;
-import space.utils.Wrapper;
+import space.utils.FontRenderer;
 import space.value.HaCd;
 
-public class Hud extends HaCd
-{
+import java.awt.*;
+
+public class Hud extends HaCd {
     public boolean dragging;
     public int x = 0, y = 0;
     public int ux = -1, uy = -1;
@@ -24,28 +25,27 @@ public class Hud extends HaCd
         this.dragging = false;
     }
 
-    public void upPosOld(){
+    public void upPosOld() {
         this.x = 0;
         this.y = 0;
         this.ux = -1;
         this.uy = -1;
     }
 
-    public void drawString(final PoseStack poseStack, final String text, final float size, final float x, final float y, final int color) {
-        float scalingFactor = size / 10.0f;
-
-        poseStack.pushPose();
-        poseStack.scale(scalingFactor, scalingFactor, scalingFactor);
-
-        this.drawString(poseStack, text, x / scalingFactor, y / scalingFactor, color);
-
-        poseStack.popPose();
+    public FontRenderer drawString(final GuiGraphics graphics, final String text, final int size, final double x, final double y, final Color color) {
+        FontRenderer fontRenderer = new FontRenderer(size);
+        fontRenderer.drawString(graphics.pose(), text, x, y, color);
+        return fontRenderer;
     }
 
-    public void drawString(final PoseStack poseStack, final String text, final float x, final float y, final int color) {
-        Wrapper.font().drawShadow(poseStack, text, x, y, color);
+    public FontRenderer drawString(final GuiGraphics graphics, final String text, final double x, final double y, final Color color) {
+        return this.drawString(graphics, text, 10, x, y, color);
     }
 
+    @Override
+    public String isCategory() {
+        return "Hud";
+    }
 
     public boolean isToggled() {
         final Hack hack = HackManager.getHackE("Hud");
@@ -55,6 +55,7 @@ public class Hud extends HaCd
         return false;
     }
 
+    @Override
     public void toggle() {
         final Hack hack = HackManager.getHackE("Hud");
         if (hack != null) {
@@ -69,15 +70,18 @@ public class Hud extends HaCd
         }
     }
 
-    public void onRender(final PoseStack poseStack, final boolean debug) {
+    public void onRender(final GuiGraphics poseStack) {
     }
 
-    public void onDebug(final PoseStack poseStack, final int mouseX, final int mouseY) {
-        if (this.dragging){
+    public void onRender(final GuiGraphics poseStack, final boolean debug) {
+    }
+
+    public void onDebug(final GuiGraphics graphics, final int mouseX, final int mouseY) {
+        if (this.dragging) {
             this.x = mouseX;
             this.y = mouseY;
         }
-        this.onRender(poseStack, true);
+        this.onRender(graphics, true);
     }
 
 }

@@ -14,6 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SwordItem;
 import space.hack.Hack;
 import space.hack.HackCategory;
+import space.hack.player.FastPlace;
 import space.manager.HackManager;
 import space.utils.TimerUtils;
 import space.utils.Wrapper;
@@ -22,14 +23,13 @@ import space.value.IntValue;
 import space.value.Mode;
 import space.value.ModeValue;
 
-public class AutoClicker extends Hack
-{
-    final TimerUtils time;
-    int delay;
-    public final ModeValue mode;
-    public final IntValue cps;
-    public final BooleanValue onlySword;
-    public final BooleanValue offBox;
+public class AutoClicker extends Hack {
+    private final TimerUtils time;
+    private final ModeValue mode;
+    private final IntValue cps;
+    private final BooleanValue onlySword;
+    private final BooleanValue offBox;
+    public int delay;
 
     public AutoClicker() {
         super("AutoClicker", HackCategory.Combat);
@@ -41,25 +41,6 @@ public class AutoClicker extends Hack
         this.addValue(this.mode, this.cps, this.onlySword, this.offBox);
     }
 
-    @Override
-    public void onAllTick() {
-        if (HackManager.noAimAssist() && this.time.isDelayX(this.delay)) {
-            if(this.onlySword.getValue() && !isHoldingSword() || this.offBox.getValue() && isHoldingBlock()){
-                return;
-            }
-            String text = this.mode.getMode();
-            if (Wrapper.mc().options.keyAttack.isDown()){
-                if(text.equals("Right") || text.equals("Both")){
-                    click(Wrapper.mc().options.keyAttack.getKey());
-                }
-            }else if (Wrapper.mc().options.keyUse.isDown()){
-                if(text.equals("Left") || text.equals("Both")){
-                    click(Wrapper.mc().options.keyUse.getKey());
-                }
-            }
-        }
-    }
-
     public static boolean isHoldingSword() {
         ItemStack heldItem = Wrapper.player().getMainHandItem();
         if (heldItem.isEmpty()) return false;
@@ -67,12 +48,23 @@ public class AutoClicker extends Hack
         return heldItemItem instanceof SwordItem;
     }
 
-    public static boolean isHoldingBlock() {
-        ItemStack heldItem = Wrapper.player().getMainHandItem();
-        if (heldItem.isEmpty()) return false;
-        Item heldItemBlock = heldItem.getItem();
-        int heldItemId = Item.getId(heldItemBlock);
-        return heldItemId >= 1 && heldItemId <= 186;
+    @Override
+    public void onAllTick() {
+        if (!HackManager.noAimAssist() && this.time.isDelayX(this.delay)) {
+            if (this.onlySword.getValue() && !isHoldingSword() || this.offBox.getValue() && FastPlace.isHoldingBlock()) {
+                return;
+            }
+            String text = this.mode.getMode();
+            if (Wrapper.mc().options.keyAttack.isDown()) {
+                if (text.equals("Right") || text.equals("Both")) {
+                    click(Wrapper.mc().options.keyAttack.getKey());
+                }
+            } else if (Wrapper.mc().options.keyUse.isDown()) {
+                if (text.equals("Left") || text.equals("Both")) {
+                    click(Wrapper.mc().options.keyUse.getKey());
+                }
+            }
+        }
     }
 
     private void click(final InputConstants.Key keyCode) {

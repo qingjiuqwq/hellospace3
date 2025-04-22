@@ -8,54 +8,39 @@
 package space.hack.player;
 
 import net.minecraft.client.KeyMapping;
-import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.AirBlock;
-import net.minecraft.world.level.block.Block;
 import space.hack.Hack;
 import space.hack.HackCategory;
 import space.manager.HackManager;
 import space.utils.Wrapper;
 
-public class Eagle extends Hack
-{
+public class Eagle extends Hack {
 
     public Eagle() {
         super("Eagle", HackCategory.Player);
     }
 
+    public static boolean isEagle() {
+        return Wrapper.level().getBlockState(new BlockPos((int) Wrapper.player().getX(), (int) (Wrapper.player().getY() - 1.0), (int) Wrapper.player().getZ())).getBlock() instanceof AirBlock;
+    }
+
     @Override
     public void onAllTick() {
         if (onEagle()) {
-            if (Wrapper.player().isOnGround()){
-                this.Sprint = isEagle();
-                KeyMapping.set(Wrapper.mc().options.keyShift.getKey(), !this.Sprint);
+            if (Wrapper.player().onGround()) {
+                this.sprint = !isEagle();
+                KeyMapping.set(Wrapper.mc().options.keyShift.getKey(), !this.sprint);
             }
         }
     }
 
     public boolean onEagle() {
         Hack hack = HackManager.getHackE("Scaffold");
-        if (hack != null && hack.isToggled()){
+        if (hack != null && hack.isToggled()) {
             return !hack.isBooleanValue("Eagle");
         }
         return true;
-    }
-
-    public static boolean isEagle() {
-        return !(getBlockUnderPlayer(Wrapper.player()) instanceof AirBlock) || !Wrapper.player().isOnGround() || !(LookVecY() < -0.6660000085830688);
-    }
-
-    public static Block getBlock(final BlockPos pos) {
-        return Wrapper.level().getBlockState(pos).getBlock();
-    }
-
-    public static Block getBlockUnderPlayer(final LocalPlayer player) {
-        return getBlock(new BlockPos(player.xo, player.yo - 1.0, player.zo));
-    }
-
-    public static double LookVecY(){
-        return Wrapper.player().getLookAngle().y;
     }
 
 }
