@@ -22,9 +22,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 import space.hack.Hack;
-import space.utils.vec.Vec4;
 import space.utils.vec.VecPos;
-import space.utils.vec.VecPos2;
 
 import java.awt.*;
 import java.nio.charset.StandardCharsets;
@@ -105,27 +103,31 @@ public class Utils {
         return -1;
     }
 
-    public static void upRotations(final Entity target, final int speed, final int deltaYMode) {
-        VecPos vecPos = (deltaYMode == 0) ?
-                getSimpleRotations(target) :
-                getSimpleRotations(target, deltaYMode);
-        float current = Wrapper.player().getYRot();
-        float angleDiff = (vecPos.yRot - current + 360) % 360;
-        if (angleDiff > 180) angleDiff -= 360;
+    public static VecPos upRotations(final Entity target, final int speed) {
+        VecPos vecPos = getSimpleRotations(target);
 
-        if (Math.abs(angleDiff) <= 0.01f) {
-            return;
+        float currentY = Wrapper.player().getYRot();
+        float currentX = Wrapper.player().getXRot();
+
+        float angleDiffY = (vecPos.yRot - currentY + 360) % 360;
+        if (angleDiffY > 180) angleDiffY -= 360;
+
+        float angleDiffX = vecPos.xRot - currentX;
+
+        if (Math.abs(angleDiffY) <= 0.01f && Math.abs(angleDiffX) <= 0.01f) {
+            return null;
         }
 
-        float step = Math.signum(angleDiff) * Math.min(speed, Math.abs(angleDiff));
-        float newYaw = current + step;
+        float stepY = Math.signum(angleDiffY) * Math.min(speed, Math.abs(angleDiffY));
+        float newY = currentY + stepY;
+        newY = (newY % 360 + 360) % 360;
+        Wrapper.player().setYRot(newY);
 
-        newYaw = (newYaw % 360 + 360) % 360;
-        Wrapper.player().setYRot(newYaw);
-    }
+        float stepX = Math.signum(angleDiffX) * Math.min(speed, Math.abs(angleDiffX));
+        float newX = currentX + stepX;
+        newX = Math.max(-90, Math.min(90, newX));
 
-    public static void upRotations(final Entity target, final int speed) {
-        upRotations(target, speed, 1);
+        return new VecPos(newY, newX);
     }
 
     public static VecPos getSimpleRotations(final Entity targetEntity) {
@@ -159,42 +161,6 @@ public class Utils {
 
     public static VecPos getSimpleRotations(final Entity targetEntity, final Vec3 player, final int deltaYMode) {
         return getSimpleRotations(targetEntity, player.x, player.y, player.z, deltaYMode);
-    }
-
-    public static VecPos getSimpleRotations(final Entity targetEntity, final Vec4 player, final int deltaYMode) {
-        return getSimpleRotations(targetEntity, player.x, player.y, player.z, deltaYMode);
-    }
-
-    public static VecPos getSimpleRotations(final Entity targetEntity, final Vec4 player) {
-        return getSimpleRotations(targetEntity, player, random(1, 2));
-    }
-
-    public static VecPos2 updateRotation(final VecPos pos, VecPos current, final int speed) {
-        int executions = 11 - speed;
-        if (pos.yRot > current.yRot) {
-            float stepSize1 = (pos.yRot - current.yRot) / executions;
-            float stepSize2 = (pos.xRot - current.xRot) / executions;
-            current.yRot += stepSize1;
-            if (current.yRot > pos.yRot) {
-                current.yRot = pos.yRot;
-            }
-            current.xRot += stepSize2;
-            if (current.xRot > pos.xRot) {
-                current.xRot = pos.xRot;
-            }
-        } else if (current.yRot > pos.yRot) {
-            float stepSize1 = (current.yRot - pos.yRot) / executions;
-            float stepSize2 = (current.xRot - pos.xRot) / executions;
-            current.yRot -= stepSize1;
-            if (current.yRot < pos.yRot) {
-                current.yRot = pos.yRot;
-            }
-            current.xRot -= stepSize2;
-            if (current.xRot < pos.xRot) {
-                current.xRot = pos.xRot;
-            }
-        }
-        return new VecPos2(current.yRot, current.xRot, current.xRot == pos.xRot && current.yRot == pos.yRot);
     }
 
     private static float clampXRot(final double xRot) {

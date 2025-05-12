@@ -20,6 +20,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.phys.Vec3;
+import space.manager.ClassManager;
 
 import java.awt.*;
 
@@ -39,6 +40,22 @@ public class Wrapper {
 
     public static LocalPlayer player() {
         return mc().player;
+    }
+
+    public static float getYRotLast() {
+        Object yRot = ReflectionHelper.getPrivateValue(player(), ClassManager.LocalPlayer_yRotLast);
+        if (yRot instanceof Float yRot2) {
+            return yRot2;
+        }
+        return player().getYRot();
+    }
+
+    public static float getXRotLast() {
+        Object xRot = ReflectionHelper.getPrivateValue(player(), ClassManager.LocalPlayer_xRotLast);
+        if (xRot instanceof Float xRot2) {
+            return xRot2;
+        }
+        return player().getXRot();
     }
 
     public static boolean isKeyMove() {

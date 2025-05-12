@@ -13,6 +13,16 @@ public class ModeValue extends Value<Mode> {
     public final String Default;
     private final Mode[] modes;
 
+    public ModeValue(final String modeName, final String... modes) {
+        super(modeName, null);
+        this.modes = new Mode[modes.length];
+        for (int i = 0; i < modes.length; i++) {
+            this.modes[i] = new Mode(modes[i]);
+        }
+        this.modes[0].setToggled(true);
+        this.Default = this.getMode();
+    }
+
     public ModeValue(final String modeName, final Mode... modes) {
         super(modeName, null);
         this.modes = modes;

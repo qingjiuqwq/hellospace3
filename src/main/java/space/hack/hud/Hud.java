@@ -9,8 +9,9 @@ package space.hack.hud;
 
 import net.minecraft.client.gui.GuiGraphics;
 import space.hack.Hack;
+import space.manager.FontManager;
 import space.manager.HackManager;
-import space.utils.FontRenderer;
+import space.utils.font.FontRenderer;
 import space.value.HaCd;
 
 import java.awt.*;
@@ -32,14 +33,18 @@ public class Hud extends HaCd {
         this.uy = -1;
     }
 
-    public FontRenderer drawString(final GuiGraphics graphics, final String text, final int size, final double x, final double y, final Color color) {
-        FontRenderer fontRenderer = new FontRenderer(size);
-        fontRenderer.drawString(graphics.pose(), text, x, y, color);
+    public FontRenderer drawString1(final GuiGraphics graphics, final String text, final int size, final float x, final float y, final Color color) {
+        FontRenderer fontRenderer = FontManager.getFont(size);
+        fontRenderer.drawString(graphics.pose(), text, x, y, color.getRGB());
         return fontRenderer;
     }
 
-    public FontRenderer drawString(final GuiGraphics graphics, final String text, final double x, final double y, final Color color) {
-        return this.drawString(graphics, text, 10, x, y, color);
+    public void drawString(final GuiGraphics graphics, final String text, final int size, final float x, final float y, final Color color) {
+        this.drawString1(graphics, text, size, x, y, color);
+    }
+
+    public void drawString(final GuiGraphics graphics, final String text, final float x, final float y, final Color color) {
+        this.drawString(graphics, text, 10, x, y, color);
     }
 
     @Override

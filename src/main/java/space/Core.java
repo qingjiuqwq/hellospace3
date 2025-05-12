@@ -29,6 +29,7 @@ import java.util.StringTokenizer;
 public class Core {
 
     public static boolean mode;
+    public static String version = "1.20.1";
 
     // Get
     public static String DisposalGet(final SeverMode severMode) {

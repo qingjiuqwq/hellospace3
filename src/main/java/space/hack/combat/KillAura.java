@@ -7,23 +7,17 @@
  */
 package space.hack.combat;
 
-import net.minecraft.client.CameraType;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.game.ServerboundInteractPacket;
-import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
-import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.EntityHitResult;
 import space.hack.Hack;
 import space.hack.HackCategory;
-import space.manager.ClassManager;
-import space.utils.*;
-import space.utils.vec.Vec4;
-import space.utils.vec.VecPos2;
-import space.utils.vec.rot.LegalPacket;
-import space.utils.vec.rot.LegalRotation;
-import space.utils.vec.rot.RotationMode;
+import space.mixin.invoked.MotionEvent;
+import space.utils.TimerUtils;
+import space.utils.Utils;
+import space.utils.ValidUtils;
+import space.utils.Wrapper;
+import space.utils.vec.VecPos;
 import space.value.*;
 
 public class KillAura extends Hack {
@@ -43,14 +37,18 @@ public class KillAura extends Hack {
     private final BooleanValue sprintMode;
     private final ModeValue rotation;
     private final IntValue rotationSpeed;
-    private final RotationMode rotationMode;
-    public LegalPacket legalPacket;
+    private VecPos speedRot;
+    private int modeRot = -1;
     private LivingEntity target;
-    private LivingEntity legalTarget;
+    private boolean silentRotation;
+    private boolean backRotation;
+    private int countRot;
+    private VecPos legalRot;
+    private VecPos endRot;
 
     public KillAura() {
-        super("KillAura", HackCategory.Combat, true);
-        this.mode = new ModeValue("Mode", new Mode("Simple", true), new Mode("Legal"), new Mode("Strict"));
+        super("KillAura", HackCategory.Combat, true, true);
+        this.mode = new ModeValue("Mode", "Simple", "Legal", "Strict");
         this.priority = ValidUtils.isPriority("Priority");
         this.maxCPS = new IntValue("MaxCPS", 11, 1, 20);
         this.minCPS = new IntValue("MinCPS", 5, 1, 19);
@@ -59,8 +57,8 @@ public class KillAura extends Hack {
         this.aac = new BooleanValue("AAC", false);
         this.swing = new BooleanValue("Swing", true);
         this.sprintMode = new BooleanValue("Sprint", true);
-        this.rotation = new ModeValue("Rotation", new Mode("Silent", true), new Mode("Legal"), new Mode("None"));
-        this.autoBlock = new ModeValue("AutoBlock", new Mode("Packet", true), new Mode("UseItem", false), new Mode("Mouse"), new Mode("None"));
+        this.rotation = new ModeValue("Rotation", "Silent", "Legal", "None");
+        this.autoBlock = new ModeValue("AutoBlock", "Packet", "UseItem", "Mouse", "None");
         this.mouseClick = new BooleanValue("MouseClick", false);
         this.fov = new IntValue("Fov", 120, 1, 360);
         this.rotationSpeed = new IntValue("RSilentSpeed", 10, 1, 10);
@@ -75,15 +73,20 @@ public class KillAura extends Hack {
                 this.rotation, this.autoBlock, this.fov, this.rotationSpeed,
                 new TextValue(28)
         );
+        this.silentRotation = false;
         this.timer = new TimerUtils();
-        this.legalPacket = new LegalPacket();
-        this.rotationMode = new RotationMode();
     }
 
     @Override
     public void onEnable() {
         this.target = null;
-        this.clear(true);
+        this.legalRot = null;
+        this.backRotation = false;
+    }
+
+    @Override
+    public void onDisable() {
+        this.backRotation = true;
     }
 
     @Override
@@ -91,147 +94,189 @@ public class KillAura extends Hack {
         if ((this.aac.getValue() && Wrapper.mc().screen != null) ||
                 (this.mouseClick.getValue() && !(Wrapper.mc().options.keyAttack.isDown() || Wrapper.mc().options.keyUse.isDown()))) {
             this.onEnable();
+            this.onDisable();
             return;
         }
-        this.sprint = true;
-        this.aimAssist = true;
+
         LivingEntity target = Utils.getTarget(this);
-        if (target != null) {
-            this.target = target;
-        } else {
-            this.target = ValidUtils.SimpleUpdate(this.fov.getValue(), this.range.getValue(), this.priority.getMode(), this.hurtTime.getValue());
-        }
-        if (this.target == null) {
-            this.clear();
-            return;
-        }
-        if (this.rotation.equals("Silent") && !this.mode.equals("Legal")) {
-            if (this.rotationMode.targetEq(this.target)) {
-                this.clear();
-                this.rotationMode.target(this.target);
-            }
-            if (Wrapper.isKeyMove() && this.rotationMode.sendPacket() && this.target != this.legalTarget && !this.rotationMode.success) {
-                VecPos2 pos = Utils.updateRotation(this.rotationMode.pos, this.rotationMode.current, this.rotationSpeed.getValue());
-                this.rotationMode.pos = pos;
-                Packet<?> packet = new ServerboundMovePlayerPacket.Rot(pos.yRot, pos.xRot, Wrapper.player().onGround());
-                LegalRotation legalRotation = new LegalRotation(packet, pos, pos.success ? this.target : null);
-                this.rotationMode.add(legalRotation);
-                Wrapper.sendPacket(packet);
-            }
-        } else {
-            if (!this.mode.equals("Legal") || !this.rotation.equals("None")) {
-                Utils.upRotations(this.target, this.rotationSpeed.getValue());
-            }
-        }
-        if (this.mode.equals("Strict") && this.rotation.equals("Silent") && (this.target != this.legalTarget || !this.rotationMode.success)) {
-            this.yHeadRot(this.target);
-            return;
-        }
-        this.yHeadRot(this.target);
-        this.onTick(this.target);
-    }
-
-    public void clear(boolean current) {
-        this.sprint = true;
-        this.aimAssist = true;
-        this.legalTarget = null;
-        this.legalPacket.clear();
-        this.rotationMode.clear(current);
-    }
-
-    public void clear() {
-        this.clear(false);
-    }
-
-    public void yHeadRot(LivingEntity target) {
-        if (Wrapper.mc().options.getCameraType() != CameraType.FIRST_PERSON) {
-            Wrapper.player().setYHeadRot(Utils.getSimpleRotations(target).yRot);
-        }
-    }
-
-    public void onTick(LivingEntity target) {
         if (target == null) {
+            target = ValidUtils.SimpleUpdate(this.fov.getValue(), this.range.getValue(), this.priority.getMode(), this.hurtTime.getValue());
+        }
+
+        if (target == null || !target.equals(this.target)) {
+            this.modeRot = -1;
+            this.target = target;
+            this.silentRotation = false;
+        }
+
+        if (target == null) {
+            this.backRotation = true;
             return;
         }
 
-        this.aimAssist = false;
-
-        if (!this.sprintMode.getValue()) {
-            this.sprint = false;
+        boolean flag = false;
+        if (this.rotation.equals("None") || this.mode.equals("Simple")) {
+            flag = true;
+        } else if (this.rotation.equals("Legal") || this.mode.equals("Legal")) {
+            flag = Wrapper.mc().hitResult instanceof EntityHitResult hitResult && hitResult.getEntity().equals(target);
+            this.legalRot = Utils.upRotations(target, this.rotationSpeed.getValue());
+        } else if (this.mode.equals("Strict")) {
+            flag = this.silentRotation;
         }
 
-        if (this.timer.isDelay(this.minCPS.getValue(), this.maxCPS.getValue())) {
-            if (this.rotation.equals("Legal") || this.mode.equals("Legal")) {
-                if (Wrapper.mc().hitResult instanceof EntityHitResult hitResult && hitResult.getEntity() == target) {
-                    this.legalPacket.add(Utils.processAttack(target, this.autoBlock.getMode(), this.swing.getValue()));
-                    Wrapper.swing(InteractionHand.MAIN_HAND, this.swing.getValue());
-                }
-            } else {
-                this.legalPacket.add(Utils.processAttack(target, this.autoBlock.getMode(), this.swing.getValue()));
+        if (flag) {
+            this.aimAssist = false;
+
+            if (!this.sprintMode.getValue()) {
+                this.sprint = false;
+            }
+
+            if (this.timer.isDelay(this.minCPS.getValue(), this.maxCPS.getValue())) {
+                Wrapper.sendPacket(Utils.processAttack(target, this.autoBlock.getMode(), this.swing.getValue()));
                 Wrapper.swing(InteractionHand.MAIN_HAND, this.swing.getValue());
+                this.timer.setLastMS();
             }
-            this.timer.setLastMS();
+
+        } else {
+            this.sprint = true;
+            this.aimAssist = true;
         }
+
     }
 
     @Override
-    public synchronized int onPacket(final Object packet, final Connection.Side side) {
-        if (this.rotation.equals("Silent") && Connection.Side.OUT == side) {
-            for (int i = 0; i < this.rotationMode.size(); i++) {
-                LegalRotation legalRotation = this.rotationMode.get(i);
-                if (legalRotation != null && legalRotation.packet == packet) {
-                    this.legalTarget = legalRotation.target;
-                    this.rotationMode.remove(i);
-                    this.rotationMode.current = legalRotation.pos;
-                    return legalRotation.target != null ? 2 : 1;
+    public void onMotion(final MotionEvent event) {
+        if (event.post) {
+            return;
+        }
+
+        if (this.rotation.equals("Legal") || this.mode.equals("Legal")) {
+
+            if (!this.isToggled() || this.legalRot == null || this.target == null || this.endRot == this.legalRot || !this.timer.isDelay(this.minCPS.getValue(), this.maxCPS.getValue()) || Wrapper.mc().hitResult instanceof EntityHitResult hitResult && hitResult.getEntity() != target) {
+                return;
+            }
+
+            // Fixing GCD
+            this.endRot = this.legalRot;
+            VecPos target = LegalAura.patchSensitivityGCDExploit(this.legalRot);
+
+            event.setYaw(target.yRot);
+            event.setPitch(target.xRot);
+
+            return;
+        }
+        if (!this.rotation.equals("None")) {
+            VecPos target;
+            int mode = -1;
+
+            if (this.backRotation) {
+                target = new VecPos(event.yaw, event.pitch);
+                if (this.modeRot != 1 && this.modeRot != 2) {
+                    mode = 1;
+                }
+            } else if (!this.isToggled()) {
+                this.endRot = null;
+                return;
+            } else {
+                if (this.target == null) {
+                    this.endRot = null;
+                    return;
+                }
+                target = Utils.getSimpleRotations(this.target, 1);
+                if (this.modeRot != 3 && this.modeRot != 4) {
+                    mode = 3;
                 }
             }
-            for (int i = 0; i < this.legalPacket.size(); i++) {
-                if (this.legalPacket.get(i) == packet) {
-                    this.legalPacket.remove(i);
-                    return super.onPacket(packet, side);
+
+            if (mode != -1) {
+                this.modeRot = mode;
+                this.countRot = 0;
+                int executions = 11 - this.rotationSpeed.getValue();
+                float stepSize1 = Math.abs(target.yRot - event.getYaw()) / executions;
+                if (stepSize1 < 5) {
+                    stepSize1 = 5;
+                }
+                float stepSize2 = Math.abs(target.xRot - event.getPitch()) / executions;
+                if (stepSize2 < 5) {
+                    stepSize2 = 5;
+                }
+                this.speedRot = new VecPos(stepSize1, stepSize2);
+            }
+
+            if (mode != -1) {
+                if (!this.timer.isDelay(this.minCPS.getValue(), this.maxCPS.getValue())) {
+                    if (this.endRot != target) {
+                        this.endRot = target;
+                        event.setYaw(target.yRot);
+                        event.setPitch(target.xRot);
+                        LegalAura.yHeadRot(event.getYaw());
+                    }
+                    return;
+                }
+                this.silentRotation = false;
+            }
+
+            this.countRot++;
+            boolean flag = false;
+            VecPos current = new VecPos(event.getYaw(), event.getPitch());
+            if (target.yRot > current.yRot) {
+                current.yRot += (this.speedRot.yRot * countRot);
+                if (current.yRot > target.yRot) {
+                    current.yRot = target.yRot;
+                }
+                flag = true;
+            } else if (current.yRot > target.yRot) {
+                current.yRot -= (this.speedRot.yRot * countRot);
+                if (target.yRot > current.yRot) {
+                    current.yRot = target.yRot;
+                }
+                flag = true;
+            }
+
+            if (target.xRot > current.xRot) {
+                current.xRot += (this.speedRot.xRot * countRot);
+                if (current.xRot > target.xRot) {
+                    current.xRot = target.xRot;
+                }
+                flag = true;
+            } else if (current.xRot > target.xRot) {
+                current.xRot -= (this.speedRot.xRot * countRot);
+                if (target.xRot > current.xRot) {
+                    current.xRot = target.xRot;
+                }
+                flag = true;
+            }
+
+            if (flag) {
+                // Fixing GCD
+                if (current != this.endRot) {
+                    this.endRot = current;
+                    target = LegalAura.patchSensitivityGCDExploit(current);
+                    event.setYaw(target.yRot);
+                    event.setPitch(target.xRot);
                 }
             }
-            if (this.target != null && (packet instanceof ServerboundMovePlayerPacket.Rot || packet instanceof ServerboundInteractPacket || packet instanceof ServerboundPlayerActionPacket)) {
-                return 0;
-            }
-            if (packet instanceof ServerboundMovePlayerPacket.Pos || packet instanceof ServerboundMovePlayerPacket.PosRot) {
-                Vec4 vec4 = new Vec4(packet);
-                if (!vec4.success()) {
-                    ChatUtils.error("Rotation Error");
-                    return super.onPacket(packet, side);
-                }
-                if (packet instanceof ServerboundMovePlayerPacket.Pos && this.rotationMode.xyzEq(vec4)) {
-                    this.rotationMode.setLastMS();
-                    return super.onPacket(packet, side);
-                }
-                LivingEntity target = this.target;
-                if (target == null || this.rotationMode.targetEq(target, vec4)) {
-                    this.rotationMode.xyz(vec4);
-                    return super.onPacket(packet, side);
-                }
-                this.clear();
-                this.rotationMode.target(target, vec4);
-                if (packet instanceof ServerboundMovePlayerPacket.Pos) {
-                    Wrapper.sendPacket(new ServerboundMovePlayerPacket.PosRot(vec4.x, vec4.y, vec4.z, this.rotationMode.pos.yRot, this.rotationMode.pos.xRot, vec4.onGround));
-                    return 0;
+
+            LegalAura.yHeadRot(current.yRot);
+            float yawDiff = Math.abs(target.yRot - current.yRot);
+            float pitchDiff = Math.abs(target.xRot - current.xRot);
+
+            if (yawDiff <= 5.0f && pitchDiff <= 5.0f) {
+                this.countRot--;
+                if (this.backRotation) {
+                    if (this.modeRot == 1) {
+                        this.modeRot = 2;
+                        this.backRotation = false;
+                    }
                 } else {
-                    this.legalTarget = target;
-                    this.rotationMode.current = this.rotationMode.pos;
-                    ReflectionHelper.setPrivateValue(packet, this.rotationMode.pos.yRot, ClassManager.serverboundMovePlayerPacket_yRot);
-                    ReflectionHelper.setPrivateValue(packet, this.rotationMode.pos.xRot, ClassManager.serverboundMovePlayerPacket_xRot);
+                    if (this.modeRot == 3) {
+                        this.modeRot = 4;
+                        this.silentRotation = true;
+                    }
                 }
-                this.rotationMode.xyz(vec4);
-                return 2;
             }
+
         }
-        return super.onPacket(packet, side);
-    }
-
-
-    @Override
-    public void onPFixes(final Object packet, final Connection.Side side, final boolean send) {
-        this.rotationMode.success = true;
     }
 
 }

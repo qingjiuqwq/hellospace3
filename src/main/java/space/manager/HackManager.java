@@ -17,16 +17,14 @@ import net.minecraftforge.client.event.ViewportEvent;
 import space.Core;
 import space.hack.Hack;
 import space.hack.another.*;
-import space.hack.combat.AimAssist;
-import space.hack.combat.AutoClicker;
-import space.hack.combat.Criticals;
-import space.hack.combat.KillAura;
+import space.hack.combat.*;
 import space.hack.hud.Hud;
 import space.hack.hud.element.EnemyInfo;
 import space.hack.hud.element.HArrayList;
 import space.hack.hud.element.MusicLyrics;
 import space.hack.player.*;
 import space.hack.visual.*;
+import space.mixin.MixinLoader;
 import space.utils.Connection;
 import space.utils.TimerUtils;
 import space.utils.Utils;
@@ -166,6 +164,9 @@ public class HackManager {
             if (!initialized) {
                 initialized = true;
                 new Connection();
+                if (MixinLoader.flag) {
+                    new MixinLoader().init();
+                }
             }
             if (timer.isDelay(30)) {
                 for (final Hack hack : getHack()) {
@@ -298,10 +299,8 @@ public class HackManager {
         SeverValue value = new SeverValue(matcher.group(1).trim(), matcher.group(2).trim());
         HaCd hacd = (HaCd) object;
         if (value.isName("Key")) {
-            if (value.canConvertInt()) {
-                hacd.setKey(value.value);
-                return;
-            }
+            hacd.setKey(value.value);
+            return;
         } else if (value.name.equals("Open")) {
             if (value.canConvertToBool()) {
                 if (hacd instanceof Hack ff) {
@@ -439,6 +438,7 @@ public class HackManager {
         addHack(new AutoClicker());
         addHack(new Criticals());
         addHack(new KillAura());
+        addHack(new LegalAura());
 
         //Player
         addHack(new AutoTool());
@@ -458,6 +458,7 @@ public class HackManager {
         addHack(new Profiler());
         //addHack(new Xray());
         addHack(new HudState());
+        addHack(new RotSpeed());
         if (Core.mode) {
             addHack(new TestAdmin());
             addHack(new TestAdmin1());

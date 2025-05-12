@@ -15,6 +15,7 @@ import space.manager.HackManager;
 import space.utils.Utils;
 import space.utils.ValidUtils;
 import space.utils.Wrapper;
+import space.utils.font.FontRenderer;
 import space.value.Mode;
 import space.value.ModeValue;
 import space.value.Value;
@@ -77,8 +78,9 @@ public class HArrayList extends Hud {
                     }
                 }
             }
-            double width = this.drawString(event, h.getName(), 9, this.x + 1, index + 3, Color.WHITE).getStringWidth(h.getName());
-            this.drawString(event, modeName, 9, width + this.x + 1, index + 3, Color.GRAY);
+            FontRenderer fontRenderer = this.drawString1(event, h.getName(), 9, this.x + 1, index + 3, Color.WHITE);
+            float width = fontRenderer.getStringWidth(h.getName());
+            this.drawString(event, modeName, 9, width + this.x + 1f, index + 3, Color.GRAY);
             index += Wrapper.font().lineHeight;
         }
 

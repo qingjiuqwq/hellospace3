@@ -8,6 +8,7 @@
 package space.hack.player;
 
 import net.minecraft.world.Container;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.item.ItemStack;
@@ -37,16 +38,18 @@ public class ChestStealer extends Hack {
 
     @Override
     public void onAllTick() {
-        ChestMenu chestMenu = (ChestMenu) Wrapper.player().containerMenu;
-        Container container = chestMenu.getContainer();
-        for (int i = 0; i < container.getContainerSize(); i++) {
-            ItemStack item = container.getItem(i);
-            if (!item.isEmpty() && this.noContinue(item, container)) {
-                this.handleInventory(chestMenu, i);
+        AbstractContainerMenu containerMenu = Wrapper.player().containerMenu;
+        if (containerMenu instanceof ChestMenu chestMenu) {
+            Container container = chestMenu.getContainer();
+            for (int i = 0; i < container.getContainerSize(); i++) {
+                ItemStack item = container.getItem(i);
+                if (!item.isEmpty() && this.noContinue(item, container)) {
+                    this.handleInventory(chestMenu, i);
+                }
             }
-        }
-        if (this.autoClose.getValue() && this.isContainerEmpty(container)) {
-            Wrapper.player().closeContainer();
+            if (this.autoClose.getValue() && this.isContainerEmpty(container)) {
+                Wrapper.player().closeContainer();
+            }
         }
     }
 

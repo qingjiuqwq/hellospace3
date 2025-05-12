@@ -13,17 +13,19 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.ViewportEvent;
+import space.mixin.invoked.MotionEvent;
 import space.utils.Connection;
 import space.value.HaCd;
 
 public class Hack extends HaCd {
     private final HackCategory category;
     public boolean warn;
-    public boolean sprint = true;
-    public boolean aimAssist = true;
-    public boolean autoTool = true;
-    private boolean show = true;
-    private boolean toggled = false;
+    public boolean sprint;
+    public boolean aimAssist;
+    public boolean autoTool;
+    private boolean show;
+    private boolean toggled;
+    private boolean mixin;
 
     public Hack(final String name, final HackCategory category) {
         this(name, category, false);
@@ -33,6 +35,17 @@ public class Hack extends HaCd {
         super(name);
         this.category = category;
         this.warn = warn;
+        this.show = true;
+        this.mixin = false;
+        this.sprint = true;
+        this.toggled = false;
+        this.autoTool = true;
+        this.aimAssist = true;
+    }
+
+    public Hack(final String name, final HackCategory category, final boolean warn, final boolean mixin) {
+        this(name, category, warn);
+        this.mixin = mixin;
     }
 
     @Override
@@ -41,8 +54,8 @@ public class Hack extends HaCd {
             this.onEnable();
             this.toggled = true;
         } else {
-            this.toggled = false;
             this.onDisable();
+            this.toggled = false;
         }
     }
 
@@ -63,6 +76,10 @@ public class Hack extends HaCd {
 
     public void setShow(final boolean show) {
         this.show = show;
+    }
+
+    public boolean isMixin() {
+        return this.mixin;
     }
 
     @Override
@@ -98,6 +115,14 @@ public class Hack extends HaCd {
     }
 
     public void onRender(final PoseStack poseStack) {
+    }
+
+    /**
+     * 借助 mixin
+     * 关闭后功能仍然生效，需要转头复原
+     */
+    public void onMotion(final MotionEvent event) {
+
     }
 
     /**

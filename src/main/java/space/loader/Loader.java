@@ -39,7 +39,7 @@ public class Loader extends Thread {
     public void run() {
         try {
             System.out.println("----Nirvana AND Space---");
-            String className = "com.netease.skindastore.loader.InjectionEndpoint";
+            String className = "space.loader.InjectionEndpoint";
 
             ClassLoader contextClassLoader = null;
             Set<Thread> threadAllKey = Thread.getAllStackTraces().keySet();
